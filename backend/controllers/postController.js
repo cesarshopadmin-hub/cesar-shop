@@ -3,6 +3,7 @@ import Post from "../models/Post.js";
 
 const createPost = asyncHandler(async (req, res) => {
   const { title, description, category, price, images } = req.body;
+  const imageUrls = req.files ? req.files.map((file) => file.path) : [];
 
   const post = await Post.create({
     user: req.user._id,
@@ -10,7 +11,7 @@ const createPost = asyncHandler(async (req, res) => {
     description,
     category,
     price,
-    images,
+    images: imageUrls,
   });
 
   res.status(201).json(post);

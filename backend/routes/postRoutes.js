@@ -1,5 +1,6 @@
 import express from "express";
 import { body, validationResult } from "express-validator";
+import upload from "../middlewares/uploadMiddleware.js";
 import {
   createPost,
   getApprovedPosts,
@@ -27,6 +28,7 @@ const handleValidationErrors = (req, res, next) => {
 router.post(
   "/",
   protect,
+  upload.array("images", 5),
   [
     body("title").notEmpty().withMessage("Title is required"),
     body("description")
