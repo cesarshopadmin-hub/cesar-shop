@@ -1,25 +1,36 @@
 import mongoose from "mongoose";
 
-const whatsappGroupLinkSchema = new mongoose.Schema(
+const socialLinkSchema = new mongoose.Schema(
   {
     title: {
       type: String,
       required: [true, "Link title is required"],
       trim: true,
     },
+    subtitle: { 
+      type: String,
+      trim: true,
+      default: "",
+    },
     url: {
       type: String,
       required: [true, "Link URL is required"],
       trim: true,
     },
+    platform: {
+      type: String,
+      required: [true, "Platform type is required"],
+      enum: ["whatsapp", "facebook", "tiktok", "telegram", "instagram", "other"],
+      default: "whatsapp",
+    },
   },
-  { _id: false },
+  { _id: true } 
 );
 
 const settingsSchema = new mongoose.Schema(
   {
-    whatsappGroupLinks: {
-      type: [whatsappGroupLinkSchema],
+    socialLinks: { 
+      type: [socialLinkSchema],
       default: [],
     },
     adminContactNumber: {
@@ -35,7 +46,7 @@ const settingsSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 export default mongoose.model("Settings", settingsSchema);

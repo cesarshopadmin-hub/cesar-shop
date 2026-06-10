@@ -18,11 +18,11 @@ export const getSettings = asyncHandler(async (req, res) => {
 // @route   PUT /api/settings
 // @access  Protected/Admin
 export const updateSettings = asyncHandler(async (req, res) => {
-  const { whatsappGroupLinks, adminContactNumber, alertMessage } = req.body;
+  const {  socialLinks, adminContactNumber, alertMessage } = req.body;
 
   // Build the update object from provided fields to avoid overwriting with undefined
   const updateData = {};
-  if (whatsappGroupLinks !== undefined) updateData.whatsappGroupLinks = whatsappGroupLinks;
+  if (socialLinks !== undefined) updateData.socialLinks = socialLinks;
   if (adminContactNumber !== undefined) updateData.adminContactNumber = adminContactNumber;
   if (alertMessage !== undefined) updateData.alertMessage = alertMessage;
 
