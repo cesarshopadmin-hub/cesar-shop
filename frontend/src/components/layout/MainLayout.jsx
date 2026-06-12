@@ -1,14 +1,23 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
-import { Home, LayoutList, PlusSquare, User } from "lucide-react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut } from "lucide-react";
+import { useAuth } from "../../context/AuthContext"; // Et2kdy mn mkan el masar sa7
 
 function MainLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth(); // S7abna el user w dalt el logout mn el context
 
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen bg-cesar-darker text-white font-cairo pb-16 md:pb-0" dir="rtl">
       
+      {/* ================= ( Top Navbar للديسكتوب ) ================= */}
       <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
@@ -22,18 +31,37 @@ function MainLayout() {
             <div className="hidden md:flex items-center gap-6 text-sm font-medium">
               <Link to="/" className={`transition hover:text-cesar-cyan ${isActive('/') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>الرئيسية</Link>
               <Link to="/posts" className={`transition hover:text-cesar-cyan ${isActive('/posts') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>المنشورات</Link>
-              <Link to="/add-post" className={`transition hover:text-cesar-cyan ${isActive('/add-post') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>أضف إعلان</Link>
-              <Link to="/profile" className={`transition hover:text-cesar-cyan ${isActive('/profile') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>حسابي</Link>
+              
+              {user ? (
+                /* ---- ( روابط المستخدم المسجل ) ---- */
+                <>
+                  <Link to="/add-post" className={`transition hover:text-cesar-cyan ${isActive('/add-post') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>أضف إعلان</Link>
+                  <Link to="/profile" className={`transition hover:text-cesar-cyan ${isActive('/profile') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>حسابي</Link>
+                  <button onClick={handleLogout} className="flex items-center gap-1 text-red-400 transition hover:text-red-300 hover:drop-shadow-[0_0_8px_rgba(248,113,113,0.6)]">
+                    <LogOut className="h-4 w-4" /> خروج
+                  </button>
+                </>
+              ) : (
+                /* ---- ( روابط الزائر ) ---- */
+                <>
+                  <Link to="/login" className={`transition hover:text-cesar-cyan ${isActive('/login') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>تسجيل الدخول</Link>
+                  <Link to="/register" className="rounded-full border border-cesar-cyan/30 bg-cesar-cyan/10 px-4 py-1.5 text-cesar-cyan transition hover:bg-cesar-cyan/20 hover:shadow-neon-cyan">
+                    إنشاء حساب
+                  </Link>
+                </>
+              )}
             </div>
 
           </div>
         </div>
       </nav>
 
+      {/* ================= ( منطقة عرض الشاشات ) ================= */}
       <main>
         <Outlet />
       </main>
 
+      {/* ================= ( Bottom Navbar للموبايل ) ================= */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-[#0a0f16]/95 backdrop-blur-lg">
         <div className="flex justify-around items-center h-16">
           
@@ -49,17 +77,42 @@ function MainLayout() {
             {isActive('/posts') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
           </Link>
 
-          <Link to="/add-post" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
-            <PlusSquare className={`h-5 w-5 ${isActive('/add-post') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
-            <span className={`text-[10px] font-medium ${isActive('/add-post') ? 'text-cesar-cyan' : 'text-slate-400'}`}>أضف إعلان</span>
-            {isActive('/add-post') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
-          </Link>
+          {user ? (
+             /* ---- ( روابط الموبايل للمستخدم المسجل ) ---- */
+            <>
+              <Link to="/add-post" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
+                <PlusSquare className={`h-5 w-5 ${isActive('/add-post') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
+                <span className={`text-[10px] font-medium ${isActive('/add-post') ? 'text-cesar-cyan' : 'text-slate-400'}`}>أضف إعلان</span>
+                {isActive('/add-post') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
+              </Link>
 
-          <Link to="/profile" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
-            <User className={`h-5 w-5 ${isActive('/profile') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
-            <span className={`text-[10px] font-medium ${isActive('/profile') ? 'text-cesar-cyan' : 'text-slate-400'}`}>حسابي</span>
-            {isActive('/profile') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
-          </Link>
+              <Link to="/profile" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
+                <User className={`h-5 w-5 ${isActive('/profile') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
+                <span className={`text-[10px] font-medium ${isActive('/profile') ? 'text-cesar-cyan' : 'text-slate-400'}`}>حسابي</span>
+                {isActive('/profile') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
+              </Link>
+              
+              <button onClick={handleLogout} className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
+                <LogOut className="h-5 w-5 text-red-400/80" />
+                <span className="text-[10px] font-medium text-red-400/80">خروج</span>
+              </button>
+            </>
+          ) : (
+            /* ---- ( روابط الموبايل للزائر ) ---- */
+            <>
+              <Link to="/login" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
+                <LogIn className={`h-5 w-5 ${isActive('/login') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
+                <span className={`text-[10px] font-medium ${isActive('/login') ? 'text-cesar-cyan' : 'text-slate-400'}`}>دخول</span>
+                {isActive('/login') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
+              </Link>
+
+              <Link to="/register" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
+                <UserPlus className={`h-5 w-5 ${isActive('/register') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
+                <span className={`text-[10px] font-medium ${isActive('/register') ? 'text-cesar-cyan' : 'text-slate-400'}`}>حساب جديد</span>
+                {isActive('/register') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
+              </Link>
+            </>
+          )}
 
         </div>
       </nav>

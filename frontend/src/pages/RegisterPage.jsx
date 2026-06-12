@@ -8,13 +8,14 @@ function RegisterPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phoneNumber: "", // sl7naha hna bdl phone
+    phoneNumber: "", // hna mtmatcha m3 el model bta3k
     password: "",
     confirmPassword: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // state el eye icon
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -28,17 +29,21 @@ function RegisterPage() {
     if (formData.password !== formData.confirmPassword) {
       return setError("كلمات المرور غير متطابقة!");
     }
+    if (formData.password.length < 6) {
+      return setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+    }
     
     setLoading(true);
     setError("");
 
     try {
+      // bnshel el confirmPassword abl ma nb3t
       const { confirmPassword, ...dataToSend } = formData;
       await register(dataToSend);
       navigate("/");
     } catch (err) {
-      console.error(err); // 34an n4ofo fe el console lw feh 7aga 8reba
-      setError(err.response?.data?.message || err.message || "حدث خطأ أثناء إنشاء الحساب.");
+      console.error(err);
+      setError(err.response?.data?.message || "حدث خطأ أثناء إنشاء الحساب. تأكد من صحة البيانات.");
     } finally {
       setLoading(false);
     }
@@ -108,13 +113,13 @@ function RegisterPage() {
               </div>
               <input
                 type={showPassword ? "text" : "password"} name="password" required value={formData.password} onChange={handleChange}
-                className="w-full bg-black/40 border border-white/10 text-white rounded-xl pr-10 pl-10 py-3 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan transition outline-none text-sm"
+                className="w-full bg-black/40 border border-white/10 text-white rounded-xl pr-10 pl-12 py-3 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan transition outline-none text-sm [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                 placeholder="كلمة المرور"
               />
               <button 
                 type="button" 
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 hover:text-cesar-cyan transition"
+                className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 hover:text-cesar-cyan transition z-10"
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -125,10 +130,17 @@ function RegisterPage() {
                 <Lock className="h-5 w-5" />
               </div>
               <input
-                type={showPassword ? "text" : "password"} name="confirmPassword" required value={formData.confirmPassword} onChange={handleChange}
-                className="w-full bg-black/40 border border-white/10 text-white rounded-xl pr-10 pl-10 py-3 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan transition outline-none text-sm"
+                type={showConfirmPassword ? "text" : "password"} name="confirmPassword" required value={formData.confirmPassword} onChange={handleChange}
+                className="w-full bg-black/40 border border-white/10 text-white rounded-xl pr-10 pl-12 py-3 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan transition outline-none text-sm [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                 placeholder="تأكيد كلمة المرور"
               />
+               <button 
+                type="button" 
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 hover:text-cesar-cyan transition z-10"
+              >
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
 
             <button

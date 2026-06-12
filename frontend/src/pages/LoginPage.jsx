@@ -15,7 +15,7 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // hna mna3na el reload
     setLoading(true);
     setError("");
 
@@ -24,7 +24,7 @@ function LoginPage() {
       navigate("/");
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || "حدث خطأ أثناء تسجيل الدخول. تأكد من بياناتك.");
+      setError(err.response?.data?.message || "البريد الإلكتروني أو كلمة المرور غير صحيحة");
     } finally {
       setLoading(false);
     }
@@ -77,13 +77,13 @@ function LoginPage() {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 text-white rounded-xl pr-10 pl-10 py-3 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan transition outline-none"
+                  className="w-full bg-black/40 border border-white/10 text-white rounded-xl pr-10 pl-12 py-3 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan transition outline-none [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                   placeholder="••••••••"
                 />
                 <button 
                   type="button" 
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 hover:text-cesar-cyan transition"
+                  className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 hover:text-cesar-cyan transition z-10"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
