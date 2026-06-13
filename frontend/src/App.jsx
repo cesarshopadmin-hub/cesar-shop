@@ -11,6 +11,8 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx"; // الد
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import EditPostPage from "./pages/EditPostPage.jsx";
+import PostsPage from "./pages/PostsPage.jsx";
+import PostDetailsPage from "./pages/PostDetailsPage.jsx";
 
 // Import Guards
 import GuestGuard from "./components/guards/GuestGuard.jsx";
@@ -25,11 +27,12 @@ function App() {
           <Route element={<MainLayout />}>
             {/* 🟢 Public Routes (Ay 7d yshofha) */}
             <Route path="/" element={<HomePage />} />
-            <Route path="/posts" element={<div>صفحة المنشورات (قريباً)</div>} />
+            <Route path="/posts" element={<PostsPage />} />
 
             {/* 🟡 Guest Routes (L-ly msh 3aml login bs) */}
             <Route path="/login" element={<GuestGuard><LoginPage /></GuestGuard>} />
             <Route path="/register" element={<GuestGuard><RegisterPage /></GuestGuard>} />
+            <Route path="/posts/:id" element={<PostDetailsPage />} />
 
             {/* 🔴 Auth Routes (L-ly 3aml login bs) */}
             <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
