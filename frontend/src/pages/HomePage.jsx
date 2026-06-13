@@ -10,6 +10,8 @@ import {
 import { MonitorPlay, RefreshCw, Sparkles } from "lucide-react";
 import api from "../Services/api.js";
 import useDocumentTitle from "../hooks/useDocumentTitle.js";
+import ParticleBackground from "../components/layout/ParticleBackground.jsx";
+import CesarLogo from "../components/CesarLogo.jsx";
 
 const platformIconMap = {
   whatsapp: FaWhatsapp,
@@ -113,6 +115,8 @@ function HomePage() {
       dir="rtl"
       className="relative isolate min-h-screen overflow-hidden bg-cesar-darker px-4 py-6 font-cairo text-white sm:px-6 lg:px-8"
     >
+      <ParticleBackground />
+
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-black/70 via-black/45 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.18),transparent_60%)] opacity-70 blur-3xl" />
       <div className="pointer-events-none absolute top-0 h-24 w-full border-b border-white/5 bg-black/35 backdrop-blur-sm" />
@@ -129,13 +133,23 @@ function HomePage() {
           transition={{ duration: 0.7, ease: "easeOut" }}
           className="flex flex-col items-center gap-3 pt-5 text-center"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-cesar-gray backdrop-blur">
+          {/* <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-cesar-gray backdrop-blur">
             <Sparkles className="h-4 w-4 text-cesar-cyan" />
             Portal رئيسي
-          </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-cesar-cyan drop-shadow-[0_0_18px_rgba(0,240,255,0.55)] sm:text-5xl lg:text-6xl">
-            متجر سيزار
-          </h1>
+          </div> */}
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 my-4"
+          >
+            <CesarLogo className="w-24 h-24 md:w-32 md:h-32 animate-pulse drop-shadow-[0_0_20px_rgba(0,209,255,0.8)]" />
+            <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cesar-cyan to-white drop-shadow-[0_0_15px_rgba(0,209,255,0.5)] pb-4 leading-normal">
+              متجر سيزار
+            </h1>
+          </motion.div>
+
           <p className="max-w-2xl text-sm leading-7 text-cesar-gray sm:text-base">
             وجهة ألعاب بلمسة نيونية، سريعة، ومهيأة لعرض الروابط والتواصل مع
             مجتمع Cesar Store.

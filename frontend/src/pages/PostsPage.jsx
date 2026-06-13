@@ -125,7 +125,7 @@ function PostsPage() {
               <label className="group relative overflow-hidden rounded-2xl border border-white/5 bg-black/30 p-4 transition focus-within:border-cesar-cyan/30 focus-within:shadow-neon-cyan">
                 <span className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-cesar-gray">
                   <Search className="h-4 w-4 text-cesar-cyan" />
-                  Search
+                  ابحث
                 </span>
                 <input
                   type="text"
@@ -139,7 +139,7 @@ function PostsPage() {
               <label className="group relative overflow-hidden rounded-2xl border border-white/5 bg-black/30 p-4 transition focus-within:border-cesar-cyan/30 focus-within:shadow-neon-cyan">
                 <span className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-cesar-gray">
                   <Tags className="h-4 w-4 text-cesar-cyan" />
-                  Category
+                  الفئة
                 </span>
                 <select
                   value={selectedCategory}

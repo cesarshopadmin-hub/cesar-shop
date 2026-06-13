@@ -1,6 +1,8 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut, Shield } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import CesarLogo from "../CesarLogo";
+import ParticleBackground from "./ParticleBackground";
 
 function MainLayout() {
   const location = useLocation();
@@ -19,15 +21,22 @@ function MainLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-cesar-darker text-white font-cairo pb-16 md:pb-0" dir="rtl">
-      
+    <div className="min-h-screen bg-cesar-darker text-white font-cairo pb-16 md:pb-0 relative" dir="rtl">
+    
+    {/* ده هيخلي النقط المتحركة ورا في كل صفحات الموقع */}
+    <ParticleBackground /> 
+
+    {/* عشان المحتوى يبقى فوق النقط */}
+    <div className="relative z-10"> 
       <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             
+            {/* اللوجو الجديد جنب الاسم */}
             <div className="flex items-center gap-2">
-              <Link to="/" className="text-xl font-black tracking-wide text-cesar-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">
-                متجر سيزار 👑
+              <Link to="/" className="flex items-center gap-3 text-xl font-black tracking-wide text-cesar-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">
+                <CesarLogo className="w-14 h-14" />
+                <span>متجر سيزار</span>
               </Link>
             </div>
 
@@ -124,6 +133,7 @@ function MainLayout() {
         </div>
       </nav>
 
+    </div>
     </div>
   );
 }
