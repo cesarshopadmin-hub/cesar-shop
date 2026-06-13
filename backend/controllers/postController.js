@@ -58,6 +58,49 @@ const updatePostStatus = asyncHandler(async (req, res) => {
 
   res.json(updatedPost);
 });
+const getPostById = asyncHandler(async (req, res) => {
+  const post = await Post.findById(req.params.id);
+
+  if (!post) {
+    res.status(404);
+    throw new Error("Post not found");
+  }
+
+  res.json(post);
+});
+
+const updatePost = asyncHandler(async (req, res) => {
+  const { title, description, category, price } = req.body;
+  const post = await Post.findById(req.params.id);
+
+  if (!post) {
+    res.status(404);
+    throw new Error("Post not found");
+  }
+
+  if (post.user.toString() !== req.user._id.toString()) {
+    res.status(401);
+    throw new Error("غير مصرح لك بتعديل هذا الإعلان");
+  }
+
+  post.title = title || post.title;
+  post.description = description || post.description;
+  post.category = category || post.category;
+  post.price = price || post.price;
+
+  if (req.files && req.files.length > 0) {
+    const imageUrls = req.files.map((file) => file.path);
+    post.images = imageUrls;
+  }
+
+  post.status = "pending";
+  post.rejectionReason = "";
+
+  const updatedPost = await post.save();
+  res.json(updatedPost);
+});
+
+
 
 export {
   createPost,
@@ -65,4 +108,6 @@ export {
   getMyPosts,
   getPendingPosts,
   updatePostStatus,
+  getPostById,
+  updatePost,
 };

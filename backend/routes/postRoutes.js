@@ -7,6 +7,8 @@ import {
   getMyPosts,
   getPendingPosts,
   updatePostStatus,
+  getPostById,
+  updatePost,
 } from "../controllers/postController.js";
 import { protect, admin } from "../middlewares/authMiddleware.js";
 
@@ -56,6 +58,14 @@ router.put(
   ],
   handleValidationErrors,
   updatePostStatus,
+);
+
+router.get("/:id", getPostById);
+router.put(
+  "/:id",
+  protect,
+  upload.array("images", 5),
+  updatePost
 );
 
 export default router;
