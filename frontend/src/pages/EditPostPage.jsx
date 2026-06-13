@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   AlignRight,
-  DollarSign,
   FileText,
   ImagePlus,
   PoundSterling,
   Loader2,
   Tags,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import api from "../Services/api.js";
 
 const initialForm = {
@@ -18,13 +19,36 @@ const initialForm = {
   description: "",
 };
 
-function AddPostPage() {
+function EditPostPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState(initialForm);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
+
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        const { data } = await api.get(`/posts/${id}`);
+        setFormData({
+          title: data.title || "",
+          category: data.category || "",
+          price: data.price || "",
+          description: data.description || "",
+        });
+      } catch (err) {
+        toast.error("تعذر جلب تفاصيل الإعلان");
+        navigate("/profile");
+      } finally {
+        setFetchLoading(false);
+      }
+    };
+    fetchPost();
+  }, [id, navigate]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -36,52 +60,49 @@ function AddPostPage() {
     setSelectedImage(file);
   };
 
-  const resetForm = () => {
-    setFormData(initialForm);
-    setSelectedImage(null);
-    setFileInputKey((prev) => prev + 1);
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
     setError("");
-    setSuccess("");
-
-    if (!selectedImage) {
-      setError("الصورة مطلوبة");
-      setLoading(false);
-      return;
-    }
 
     const payload = new FormData();
     payload.append("title", formData.title.trim());
     payload.append("category", formData.category);
     payload.append("price", formData.price);
     payload.append("description", formData.description.trim());
-    payload.append("images", selectedImage);
+    if (selectedImage) {
+      payload.append("images", selectedImage);
+    }
 
     try {
-      await api.post("/posts", payload, {
+      await api.put(`/posts/${id}`, payload, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
-      setSuccess("تم إرسال إعلانك بنجاح وهو الآن قيد المراجعة من الإدارة.");
-      resetForm();
+      toast.success("تم تعديل الإعلان وإرساله للمراجعة");
+      navigate("/profile");
     } catch (requestError) {
       setError(
         requestError.response?.data?.message ||
-          "تعذر إرسال الإعلان. حاول مرة أخرى لاحقاً.",
+          "تعذر تعديل الإعلان. حاول مرة أخرى لاحقاً.",
       );
     } finally {
       setLoading(false);
     }
   };
 
+  if (fetchLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black/90">
+        <Loader2 className="h-10 w-10 animate-spin text-cesar-cyan" />
+      </div>
+    );
+  }
+
   return (
-    <div dir="rtl" className="min-h-screen px-4 py-10 font-cairo">
+    <div dir="rtl" className="min-h-screen px-4 py-10 font-cairo bg-cesar-darker">
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
@@ -97,9 +118,9 @@ function AddPostPage() {
             <FileText className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">إضافة إعلان جديد</h1>
+            <h1 className="text-3xl font-bold text-white">تعديل الإعلان</h1>
             <p className="mt-2 text-sm leading-6 text-cesar-gray">
-              أنشئ إعلانك الآن وسيتم مراجعته قبل النشر على المنصة.
+              قم بتعديل تفاصيل الإعلان وسيتم إرساله للمراجعة مرة أخرى.
             </p>
           </div>
         </div>
@@ -107,12 +128,6 @@ function AddPostPage() {
         {error ? (
           <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
             {error}
-          </div>
-        ) : null}
-
-        {success ? (
-          <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
-            {success}
           </div>
         ) : null}
 
@@ -174,7 +189,6 @@ function AddPostPage() {
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500">
-                  {/* <DollarSign className="h-5 w-5" /> */}
                   <PoundSterling className="h-5 w-5" />
                 </div>
                 <input
@@ -214,7 +228,7 @@ function AddPostPage() {
 
           <div className="space-y-2">
             <label className="mr-1 text-sm font-medium text-slate-300">
-              صورة الإعلان
+              صورة الإعلان (اختياري، لتغيير الصورة الحالية)
             </label>
             <label className="flex cursor-pointer items-center gap-4 rounded-xl border border-dashed border-white/10 bg-black/40 px-4 py-4 transition hover:border-cesar-cyan/60 hover:bg-black/50">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan">
@@ -222,7 +236,7 @@ function AddPostPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-white">
-                  اختر صورة واحدة للإعلان
+                  اختر صورة جديدة للإعلان
                 </p>
                 <p className="mt-1 truncate text-sm text-cesar-gray">
                   {selectedImage ? selectedImage.name : "PNG, JPG, JPEG, WEBP"}
@@ -232,7 +246,6 @@ function AddPostPage() {
                 key={fileInputKey}
                 type="file"
                 accept="image/*"
-                required
                 onChange={handleFileChange}
                 className="hidden"
               />
@@ -250,7 +263,7 @@ function AddPostPage() {
                 جاري الإرسال...
               </>
             ) : (
-              "إرسال الإعلان"
+              "إرسال التعديلات"
             )}
           </button>
         </form>
@@ -259,4 +272,4 @@ function AddPostPage() {
   );
 }
 
-export default AddPostPage;
+export default EditPostPage;

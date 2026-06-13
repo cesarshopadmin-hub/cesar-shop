@@ -7,12 +7,15 @@ import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import AddPostPage from "./pages/AddPostPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx"; // الدشبورد الجديدة
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import EditPostPage from "./pages/EditPostPage.jsx";
 
 // Import Guards
 import GuestGuard from "./components/guards/GuestGuard.jsx";
 import AuthGuard from "./components/guards/AuthGuard.jsx";
+import AdminGuard from "./components/guards/AdminGuard.jsx";
 
 function App() {
   return (
@@ -25,43 +28,23 @@ function App() {
             <Route path="/posts" element={<div>صفحة المنشورات (قريباً)</div>} />
 
             {/* 🟡 Guest Routes (L-ly msh 3aml login bs) */}
-            <Route
-              path="/login"
-              element={
-                <GuestGuard>
-                  <LoginPage />
-                </GuestGuard>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <GuestGuard>
-                  <RegisterPage />
-                </GuestGuard>
-              }
-            />
+            <Route path="/login" element={<GuestGuard><LoginPage /></GuestGuard>} />
+            <Route path="/register" element={<GuestGuard><RegisterPage /></GuestGuard>} />
 
             {/* 🔴 Auth Routes (L-ly 3aml login bs) */}
-            <Route
-              path="/profile"
-              element={
-                <AuthGuard>
-                  <ProfilePage />
-                </AuthGuard>
-              }
-            />
-            <Route
-              path="/add-post"
-              element={
-                <AuthGuard>
-                  <AddPostPage />
-                </AuthGuard>
-              }
-            />
+            <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
+            <Route path="/add-post" element={<AuthGuard><AddPostPage /></AuthGuard>} />
 
             {/* 👑 Admin Routes (Ll-moderen bs) */}
-            {/* <Route path="/admin/dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} /> */}
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <AdminGuard>
+                  <AdminDashboardPage />
+                </AdminGuard>
+              } 
+            />
+            <Route path="/edit-post/:id" element={<AuthGuard><EditPostPage /></AuthGuard>} />
 
             <Route path="*" element={<NotFoundPage />} />
           </Route>

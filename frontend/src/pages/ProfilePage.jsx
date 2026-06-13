@@ -10,6 +10,9 @@ import {
   User,
   XCircle,
   Camera,
+  Edit2,
+  Save,
+  X,
 } from "lucide-react";
 import api from "../Services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -36,23 +39,26 @@ const statusMeta = {
 };
 
 function ProfilePage() {
-  const { user,updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
   const fileInputRef = useRef(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const currentUser = user?.name ? user : user?.user;
-  const name = currentUser?.name || "الزائر";
-  const email = currentUser?.email || "غير متوفر";
-  const phoneNumber = currentUser?.phoneNumber || "غير متوفر";
   const profilePictureUrl = currentUser?.profilePictureUrl;
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    name: currentUser?.name || "",
+    phoneNumber: currentUser?.phoneNumber || "",
+  });
 
   useEffect(() => {
     let isMounted = true;
-
     const fetchMyPosts = async () => {
       try {
         setLoading(true);
@@ -65,7 +71,7 @@ function ProfilePage() {
         if (isMounted) {
           setError(
             requestError.response?.data?.message ||
-              "تعذر تحميل المنشورات الخاصة بك."
+              "تعذر تحميل المنشورات الخاصة بك.",
           );
         }
       } finally {
@@ -74,9 +80,7 @@ function ProfilePage() {
         }
       }
     };
-
     fetchMyPosts();
-
     return () => {
       isMounted = false;
     };
@@ -86,30 +90,47 @@ function ProfilePage() {
     fileInputRef.current.click();
   };
 
- const handleImageUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  setUploadingImage(true);
-  const formData = new FormData();
-  formData.append("profilePicture", file);
+    setUploadingImage(true);
+    const form = new FormData();
+    form.append("profilePicture", file);
 
-  try {
-    const response = await api.put("/auth/profile-picture", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    
-    if (response.data && response.data.profilePictureUrl) {
-      updateUser({ profilePictureUrl: response.data.profilePictureUrl });
+    try {
+      const response = await api.put("/auth/profile-picture", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (response.data && response.data.profilePictureUrl) {
+        updateUser({ profilePictureUrl: response.data.profilePictureUrl });
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("حدث خطأ أثناء رفع الصورة");
+    } finally {
+      setUploadingImage(false);
     }
-    
-  } catch (error) {
-    console.error("Error uploading image:", error);
-    alert("حدث خطأ أثناء رفع الصورة");
-  } finally {
-    setUploadingImage(false);
-  }
-};
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+      setIsSaving(true);
+      const response = await api.put("/auth/profile", formData);
+      if (response.data) {
+        updateUser({
+          name: response.data.name,
+          phoneNumber: response.data.phoneNumber,
+        });
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("حدث خطأ أثناء تحديث البيانات");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div dir="rtl" className="min-h-screen px-4 py-10 font-cairo">
@@ -123,11 +144,10 @@ function ProfilePage() {
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-cesar-cyan to-transparent" />
           <div className="pointer-events-none absolute -right-20 top-12 h-48 w-48 rounded-full bg-cesar-cyan/10 blur-3xl" />
 
-          <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-4 text-right">
-              
-              <div 
-                className="relative group cursor-pointer" 
+          <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-start gap-4 text-right w-full md:w-auto">
+              <div
+                className="relative group cursor-pointer shrink-0"
                 onClick={handleImageClick}
                 title="تغيير الصورة الشخصية"
               >
@@ -137,9 +157,9 @@ function ProfilePage() {
                   </div>
                 ) : profilePictureUrl ? (
                   <div className="relative h-16 w-16">
-                    <img 
-                      src={profilePictureUrl} 
-                      alt={name} 
+                    <img
+                      src={profilePictureUrl}
+                      alt={currentUser?.name}
                       className="h-full w-full rounded-2xl object-cover border border-cesar-cyan/30 group-hover:border-cesar-cyan transition shadow-neon-cyan"
                     />
                     <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
@@ -151,20 +171,65 @@ function ProfilePage() {
                     <Camera className="h-7 w-7" />
                   </div>
                 )}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  ref={fileInputRef} 
-                  onChange={handleImageUpload} 
-                  className="hidden" 
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  className="hidden"
                 />
               </div>
 
-              <div className="space-y-2">
-                <div>
+              <div className="space-y-2 flex-1">
+                <div className="flex items-center justify-between w-full">
                   <p className="text-sm text-cesar-gray">الملف الشخصي</p>
-                  <h1 className="text-3xl font-bold text-white">{name}</h1>
+                  {!isEditing ? (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="text-cesar-cyan hover:text-white transition flex items-center gap-1 text-sm"
+                    >
+                      <Edit2 className="h-4 w-4" /> تعديل
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleUpdateProfile}
+                        disabled={isSaving}
+                        className="text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
+                      >
+                        {isSaving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}{" "}
+                        حفظ
+                      </button>
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        disabled={isSaving}
+                        className="text-red-400 hover:text-red-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
+                      >
+                        <X className="h-4 w-4" /> إلغاء
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    className="w-full max-w-xs bg-black/40 border border-white/10 text-white rounded-lg px-3 py-1 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan transition outline-none text-2xl font-bold"
+                  />
+                ) : (
+                  <h1 className="text-3xl font-bold text-white">
+                    {currentUser?.name || "الزائر"}
+                  </h1>
+                )}
+
                 <p className="max-w-2xl text-sm leading-6 text-slate-300">
                   تابع تفاصيل حسابك والمنشورات التي أرسلتها وحالتها الحالية من
                   هنا.
@@ -172,14 +237,14 @@ function ProfilePage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3 w-full md:w-auto mt-4 md:mt-0">
               <div className="rounded-2xl border border-white/5 bg-black/30 px-4 py-3 text-right">
                 <div className="mb-2 flex items-center justify-end gap-2 text-cesar-gray">
                   <Mail className="h-4 w-4" />
                   <span className="text-xs">البريد الإلكتروني</span>
                 </div>
                 <p className="truncate text-sm font-semibold text-white">
-                  {email}
+                  {currentUser?.email || "غير متوفر"}
                 </p>
               </div>
               <div className="rounded-2xl border border-white/5 bg-black/30 px-4 py-3 text-right">
@@ -187,9 +252,24 @@ function ProfilePage() {
                   <Phone className="h-4 w-4" />
                   <span className="text-xs">رقم الهاتف</span>
                 </div>
-                <p className="truncate text-sm font-semibold text-white">
-                  {phoneNumber}
-                </p>
+                {isEditing ? (
+                  <input
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phoneNumber: e.target.value })
+                    }
+                    className="w-full bg-black/40 border border-white/10 text-white rounded-lg px-2 py-1 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan transition outline-none text-sm font-semibold text-right"
+                    dir="ltr"
+                  />
+                ) : (
+                  <p
+                    className="truncate text-sm font-semibold text-white"
+                    dir="ltr"
+                  >
+                    {currentUser?.phoneNumber || "غير متوفر"}
+                  </p>
+                )}
               </div>
               <div className="rounded-2xl border border-white/5 bg-black/30 px-4 py-3 text-right">
                 <div className="mb-2 flex items-center justify-end gap-2 text-cesar-gray">
@@ -318,9 +398,18 @@ function ProfilePage() {
                       </div>
 
                       {post.status === "rejected" && post.rejectionReason ? (
-                        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
-                          <p className="mb-1 font-semibold">سبب الرفض</p>
-                          <p className="leading-6">{post.rejectionReason}</p>
+                        <div className="space-y-3">
+                          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+                            <p className="mb-1 font-semibold">سبب الرفض</p>
+                            <p className="leading-6">{post.rejectionReason}</p>
+                          </div>
+
+                          <Link
+                            to={`/edit-post/${post._id}`}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-2 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
+                          >
+                            تعديل الإعلان وإعادة التقديم
+                          </Link>
                         </div>
                       ) : null}
                     </div>

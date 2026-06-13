@@ -1,14 +1,17 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut } from "lucide-react";
+import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut, Shield } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { token, logout } = useAuth(); 
+  const { token, logout, user } = useAuth(); 
 
   const isActive = (path) => location.pathname === path;
   const isLoggedIn = !!token; 
+  
+  const currentUser = user?.name ? user : user?.user;
+  const isAdmin = currentUser?.role === "admin";
 
   const handleLogout = () => {
     logout();
@@ -36,6 +39,13 @@ function MainLayout() {
                 <>
                   <Link to="/add-post" className={`transition hover:text-cesar-cyan ${isActive('/add-post') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>أضف إعلان</Link>
                   <Link to="/profile" className={`transition hover:text-cesar-cyan ${isActive('/profile') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>حسابي</Link>
+                  
+                  {isAdmin && (
+                    <Link to="/admin/dashboard" className={`transition hover:text-cesar-cyan flex items-center gap-1 ${isActive('/admin/dashboard') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-emerald-400'}`}>
+                      <Shield className="h-4 w-4" /> الإدارة
+                    </Link>
+                  )}
+
                   <button onClick={handleLogout} className="flex items-center gap-1 text-red-400 transition hover:text-red-300 hover:drop-shadow-[0_0_8px_rgba(248,113,113,0.6)]">
                     <LogOut className="h-4 w-4" /> تسجيل خروج
                   </button>
@@ -75,6 +85,14 @@ function MainLayout() {
 
           {isLoggedIn ? (
             <>
+              {isAdmin && (
+                <Link to="/admin/dashboard" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
+                  <Shield className={`h-5 w-5 ${isActive('/admin/dashboard') ? 'text-cesar-cyan' : 'text-emerald-400'}`} />
+                  <span className={`text-[10px] font-medium ${isActive('/admin/dashboard') ? 'text-cesar-cyan' : 'text-emerald-400'}`}>الإدارة</span>
+                  {isActive('/admin/dashboard') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
+                </Link>
+              )}
+
               <Link to="/add-post" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
                 <PlusSquare className={`h-5 w-5 ${isActive('/add-post') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
                 <span className={`text-[10px] font-medium ${isActive('/add-post') ? 'text-cesar-cyan' : 'text-slate-400'}`}>أضف إعلان</span>
@@ -86,11 +104,6 @@ function MainLayout() {
                 <span className={`text-[10px] font-medium ${isActive('/profile') ? 'text-cesar-cyan' : 'text-slate-400'}`}>حسابي</span>
                 {isActive('/profile') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
               </Link>
-              
-              <button onClick={handleLogout} className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
-                <LogOut className="h-5 w-5 text-red-400/80" />
-                <span className="text-[10px] font-medium text-red-400/80">خروج</span>
-              </button>
             </>
           ) : (
             <>
