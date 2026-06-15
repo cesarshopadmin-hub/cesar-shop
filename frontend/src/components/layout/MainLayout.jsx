@@ -23,16 +23,13 @@ function MainLayout() {
   return (
     <div className="min-h-screen bg-cesar-darker text-white font-cairo pb-16 md:pb-0 relative" dir="rtl">
     
-    {/* ده هيخلي النقط المتحركة ورا في كل صفحات الموقع */}
     <ParticleBackground /> 
 
-    {/* عشان المحتوى يبقى فوق النقط */}
     <div className="relative z-10"> 
       <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             
-            {/* اللوجو الجديد جنب الاسم */}
             <div className="flex items-center gap-2">
               <Link to="/" className="flex items-center gap-3 text-xl font-black tracking-wide text-cesar-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">
                 <CesarLogo className="w-14 h-14" />
@@ -113,6 +110,11 @@ function MainLayout() {
                 <span className={`text-[10px] font-medium ${isActive('/profile') ? 'text-cesar-cyan' : 'text-slate-400'}`}>حسابي</span>
                 {isActive('/profile') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
               </Link>
+
+              <button onClick={handleLogout} className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
+                <LogOut className="h-5 w-5 text-red-500/80" />
+                <span className="text-[10px] font-medium text-red-500/80">خروج</span>
+              </button>
             </>
           ) : (
             <>
