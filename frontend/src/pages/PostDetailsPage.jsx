@@ -7,6 +7,8 @@ import {
   Mail,
   Phone,
   MessageCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api";
@@ -17,6 +19,23 @@ const PostDetailsPage = () => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const handlePrev = () => {
+    if (post && post.images && post.images.length > 0) {
+      setCurrentImageIndex((prev) =>
+        prev === 0 ? post.images.length - 1 : prev - 1
+      );
+    }
+  };
+
+  const handleNext = () => {
+    if (post && post.images && post.images.length > 0) {
+      setCurrentImageIndex((prev) =>
+        prev === post.images.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -82,13 +101,54 @@ const PostDetailsPage = () => {
               <img
                 src={
                   post.images && post.images.length > 0
-                    ? post.images[0]
+                    ? post.images[currentImageIndex]
                     : "https://via.placeholder.com/600x400?text=No+Image"
                 }
                 alt={post.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
+              
+              {post.images && post.images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-cesar-cyan/30 bg-black/60 text-cesar-cyan hover:bg-cesar-cyan hover:text-black hover:shadow-neon-cyan transition duration-300 backdrop-blur-sm focus:outline-none z-10"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-cesar-cyan/30 bg-black/60 text-cesar-cyan hover:bg-cesar-cyan hover:text-black hover:shadow-neon-cyan transition duration-300 backdrop-blur-sm focus:outline-none z-10"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                </>
+              )}
             </div>
+
+            {post.images && post.images.length > 1 && (
+              <div className="flex gap-3 mt-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-cesar-cyan/20">
+                {post.images.map((img, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 cursor-pointer transition-all duration-300 ${
+                      idx === currentImageIndex
+                        ? "border-cesar-cyan opacity-100 shadow-[0_0_10px_rgba(0,240,255,0.4)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`${post.title}-${idx}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col">

@@ -8,6 +8,7 @@ import RegisterPage from "./pages/RegisterPage.jsx";
 import AddPostPage from "./pages/AddPostPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx"; // الدشبورد الجديدة
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import EditPostPage from "./pages/EditPostPage.jsx";
@@ -44,6 +45,14 @@ function App() {
               element={
                 <AdminGuard>
                   <AdminDashboardPage />
+                </AdminGuard>
+              } 
+            />
+            <Route 
+              path="/admin/settings" 
+              element={
+                <AdminGuard>
+                  <AdminSettingsPage />
                 </AdminGuard>
               } 
             />

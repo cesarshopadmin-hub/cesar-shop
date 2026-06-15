@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   AlignRight,
@@ -8,7 +8,9 @@ import {
   PoundSterling,
   Loader2,
   Tags,
+  X,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import api from "../Services/api.js";
 
 const initialForm = {
@@ -20,11 +22,27 @@ const initialForm = {
 
 function AddPostPage() {
   const [formData, setFormData] = useState(initialForm);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
+
+  const objectUrlCache = useRef(new Map());
+
+  const getObjectURL = (file) => {
+    if (typeof file === "string") return file;
+    if (!objectUrlCache.current.has(file)) {
+      objectUrlCache.current.set(file, URL.createObjectURL(file));
+    }
+    return objectUrlCache.current.get(file);
+  };
+
+  useEffect(() => {
+    return () => {
+      objectUrlCache.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -32,13 +50,31 @@ function AddPostPage() {
   };
 
   const handleFileChange = (event) => {
-    const file = event.target.files?.[0] || null;
-    setSelectedImage(file);
+    const files = Array.from(event.target.files || []);
+    const totalFiles = [...selectedImages, ...files];
+    if (totalFiles.length > 5) {
+      toast.error("لا يمكنك رفع أكثر من 5 صور");
+      setSelectedImages(totalFiles.slice(0, 5));
+    } else {
+      setSelectedImages(totalFiles);
+    }
+  };
+
+  const handleRemoveImage = (index) => {
+    const fileToRemove = selectedImages[index];
+    if (fileToRemove && typeof fileToRemove !== "string") {
+      const cachedUrl = objectUrlCache.current.get(fileToRemove);
+      if (cachedUrl) {
+        URL.revokeObjectURL(cachedUrl);
+        objectUrlCache.current.delete(fileToRemove);
+      }
+    }
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const resetForm = () => {
     setFormData(initialForm);
-    setSelectedImage(null);
+    setSelectedImages([]);
     setFileInputKey((prev) => prev + 1);
   };
 
@@ -48,8 +84,8 @@ function AddPostPage() {
     setError("");
     setSuccess("");
 
-    if (!selectedImage) {
-      setError("الصورة مطلوبة");
+    if (selectedImages.length === 0) {
+      setError("يجب اختيار صورة واحدة على الأقل");
       setLoading(false);
       return;
     }
@@ -59,7 +95,7 @@ function AddPostPage() {
     payload.append("category", formData.category);
     payload.append("price", formData.price);
     payload.append("description", formData.description.trim());
-    payload.append("images", selectedImage);
+    selectedImages.forEach(file => payload.append("images", file));
 
     try {
       await api.post("/posts", payload, {
@@ -214,7 +250,7 @@ function AddPostPage() {
 
           <div className="space-y-2">
             <label className="mr-1 text-sm font-medium text-slate-300">
-              صورة الإعلان
+              صور الإعلان (حد أقصى 5 صور)
             </label>
             <label className="flex cursor-pointer items-center gap-4 rounded-xl border border-dashed border-white/10 bg-black/40 px-4 py-4 transition hover:border-cesar-cyan/60 hover:bg-black/50">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan">
@@ -222,21 +258,49 @@ function AddPostPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-white">
-                  اختر صورة واحدة للإعلان
+                  اختر صور للإعلان (حد أقصى 5 صور)
                 </p>
                 <p className="mt-1 truncate text-sm text-cesar-gray">
-                  {selectedImage ? selectedImage.name : "PNG, JPG, JPEG, WEBP"}
+                  {selectedImages.length > 0
+                    ? `تم اختيار ${selectedImages.length} صور`
+                    : "PNG, JPG, JPEG, WEBP"}
                 </p>
               </div>
               <input
                 key={fileInputKey}
                 type="file"
                 accept="image/*"
-                required
+                multiple
                 onChange={handleFileChange}
                 className="hidden"
               />
             </label>
+            {selectedImages.length > 0 && (
+              <div className="flex flex-wrap gap-3 pt-2">
+                {selectedImages.map((file, index) => {
+                  const url = getObjectURL(file);
+                  return (
+                    <div
+                      key={index}
+                      className="relative h-24 w-24 rounded-xl border border-white/10 bg-black/40"
+                    >
+                      <img
+                        src={url}
+                        alt={`preview-${index}`}
+                        className="h-full w-full object-cover rounded-xl"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full border border-red-500 bg-red-950/80 text-red-500 hover:bg-red-500 hover:text-white hover:shadow-[0_0_12px_rgba(239,68,68,0.8)] transition duration-200 text-xs font-bold focus:outline-none"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <button

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -10,6 +11,7 @@ import {
   X,
   XCircle,
   ShieldCheck,
+  Eye,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../../Services/api.js";
@@ -142,8 +144,16 @@ function AdminDashboardPage() {
 
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3 text-right">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan">
-                <ShieldCheck className="h-7 w-7" />
+              <div className="flex items-center justify-between">
+                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan">
+                  <ShieldCheck className="h-7 w-7" />
+                </div>
+                <Link
+                  to="/admin/settings"
+                  className="rounded-xl border border-cesar-cyan/50 bg-cesar-cyan/10 px-4 py-2.5 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
+                >
+                  إعدادات المتجر العامة
+                </Link>
               </div>
               <div>
                 <p className="text-sm text-cesar-gray">لوحة الإدارة</p>
@@ -292,7 +302,15 @@ function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <Link
+                        to={"/posts/" + post._id}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-3 font-bold text-cesar-gray hover:text-white hover:bg-white/10 transition duration-300"
+                      >
+                        <Eye className="h-5 w-5" />
+                        عرض التفاصيل
+                      </Link>
+
                       <button
                         type="button"
                         onClick={() => handleApprove(post._id)}
@@ -304,7 +322,7 @@ function AdminDashboardPage() {
                         ) : (
                           <CheckCircle2 className="h-5 w-5" />
                         )}
-                        Approve
+                        موافقة
                       </button>
 
                       <button
@@ -314,7 +332,7 @@ function AdminDashboardPage() {
                         className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 font-bold text-rose-300 transition duration-300 hover:bg-rose-500/20 hover:shadow-[0_0_18px_rgba(244,63,94,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <XCircle className="h-5 w-5" />
-                        Reject
+                        رفض
                       </button>
                     </div>
                   </div>
