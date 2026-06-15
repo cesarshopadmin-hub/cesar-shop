@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut, Shield } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import CesarLogo from "../CesarLogo";
-import ParticleBackground from "./ParticleBackground";
+// import ParticleBackground from "./ParticleBackground";
 
 function MainLayout() {
   const location = useLocation();
@@ -23,7 +23,7 @@ function MainLayout() {
   return (
     <div className="min-h-screen bg-cesar-darker text-white font-cairo pb-16 md:pb-0 relative" dir="rtl">
     
-    <ParticleBackground /> 
+    {/* <ParticleBackground />  */}
 
     <div className="relative z-10"> 
       <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">

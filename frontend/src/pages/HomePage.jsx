@@ -10,7 +10,7 @@ import {
 import { MonitorPlay, RefreshCw, Sparkles } from "lucide-react";
 import api from "../Services/api.js";
 import useDocumentTitle from "../hooks/useDocumentTitle.js";
-import ParticleBackground from "../components/layout/ParticleBackground.jsx";
+// import ParticleBackground from "../components/layout/ParticleBackground.jsx";
 import CesarLogo from "../components/CesarLogo.jsx";
 
 const platformIconMap = {
@@ -115,7 +115,7 @@ function HomePage() {
       dir="rtl"
       className="relative isolate min-h-screen overflow-hidden bg-cesar-darker px-4 py-6 font-cairo text-white sm:px-6 lg:px-8"
     >
-      <ParticleBackground />
+      {/* <ParticleBackground /> */}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-black/70 via-black/45 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.18),transparent_60%)] opacity-70 blur-3xl" />
