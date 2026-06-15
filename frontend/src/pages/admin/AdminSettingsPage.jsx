@@ -139,7 +139,7 @@ function AdminSettingsPage() {
   return (
     <div
       dir="rtl"
-      className="min-h-screen bg-cesar-darker px-4 py-8 font-cairo text-white sm:px-6 lg:px-8"
+      className="min-h-screen bg-cesar-darker px-4 pt-8 pb-32 md:pb-12 font-cairo text-white sm:px-6 lg:px-8"
     >
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -373,7 +373,7 @@ function AdminSettingsPage() {
           </section>
 
           {/* Fixed Save Button Panel */}
-          <div className="fixed bottom-0 inset-x-0 border-t border-white/5 bg-cesar-darker/90 py-4 px-4 backdrop-blur-lg z-20">
+          <div className="fixed bottom-16 md:bottom-0 inset-x-0 border-t border-white/5 bg-cesar-darker/90 py-4 px-4 backdrop-blur-lg z-20">
             <div className="mx-auto max-w-4xl flex justify-end">
               <button
                 type="submit"
