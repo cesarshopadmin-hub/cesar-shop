@@ -12,6 +12,7 @@ import {
   XCircle,
   ShieldCheck,
   Eye,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../../Services/api.js";
@@ -159,7 +160,14 @@ function AdminDashboardPage() {
                   </p>
                 </div>
               </div>
-              <div className="shrink-0">
+              <div className="shrink-0 flex items-center gap-3">
+                <Link
+                  to="/admin/add-admin"
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-5 py-3 text-sm font-bold text-emerald-400 transition duration-300 hover:bg-emerald-500/20 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                >
+                  <UserPlus className="h-5 w-5" />
+                  إضافة مسؤول جديد
+                </Link>
                 <Link
                   to="/admin/settings"
                   className="inline-flex items-center gap-2 rounded-xl border border-cesar-cyan/50 bg-cesar-cyan/10 px-5 py-3 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"

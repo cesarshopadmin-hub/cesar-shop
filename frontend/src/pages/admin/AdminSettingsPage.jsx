@@ -92,7 +92,19 @@ function AdminSettingsPage() {
       setSaving(true);
 
       const cleanedNumbers = adminNumbers
-        .map((num) => num.trim())
+        .map((num) => {
+          const trimmed = num.trim();
+          if (!trimmed) return "";
+          if (trimmed.startsWith("http")) {
+            return trimmed;
+          }
+          const digitsOnly = trimmed.replace(/\D/g, "");
+          let formattedNumber = digitsOnly;
+          if (digitsOnly.startsWith("01")) {
+            formattedNumber = "2" + digitsOnly;
+          }
+          return "https://wa.me/" + formattedNumber;
+        })
         .filter(Boolean);
 
       const cleanedSocialLinks = socialLinks
@@ -229,9 +241,9 @@ function AdminSettingsPage() {
                   {adminNumbers.map((num, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <input
-                        type="tel"
+                        type="text"
                         required
-                        placeholder="01xxxxxxxxx"
+                        placeholder="ادخل رقم الهاتف"
                         value={num}
                         onChange={(e) => handleNumberChange(index, e.target.value)}
                         className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
@@ -374,7 +386,7 @@ function AdminSettingsPage() {
 
           {/* Fixed Save Button Panel */}
           <div className="fixed bottom-16 md:bottom-0 inset-x-0 border-t border-white/5 bg-cesar-darker/90 py-4 px-4 backdrop-blur-lg z-20">
-            <div className="mx-auto max-w-4xl flex justify-end">
+            <div className="mx-auto max-w-4xl flex justify-center">
               <button
                 type="submit"
                 disabled={saving}
@@ -387,7 +399,7 @@ function AdminSettingsPage() {
                   </>
                 ) : (
                   <>
-                    <Save className="h-5 w-5" />
+                    <Save className="h-5 w-5 " />
                     حفظ كافة التغييرات
                   </>
                 )}
