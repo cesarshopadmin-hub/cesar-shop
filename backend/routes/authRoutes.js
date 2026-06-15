@@ -7,8 +7,9 @@ import {
   getUserProfile,
   updateUserProfile,
   updateProfilePicture,
+  addAdmin,
 } from "../controllers/authController.js";
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect, admin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -68,5 +69,6 @@ router.post(
 router.get("/profile", protect, getUserProfile);
 router.put("/profile", protect, updateUserProfile);
 router.put("/profile-picture", protect, upload.single("profilePicture"), updateProfilePicture);
+router.post("/add-admin", protect, admin, addAdmin);
 
 export default router;

@@ -114,6 +114,46 @@ const updateProfilePicture = asyncHandler(async (req, res) => {
     profilePictureUrl: user.profilePictureUrl,
   });
 });
+// @desc    Register a new admin (Admin only)
+// @route   POST /api/users/add-admin
+// @access  Private/Admin
+const addAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    res.status(400);
+    throw new Error("Please add all fields");
+  }
+
+  const userExists = await User.findOne({ email });
+
+  if (userExists) {
+    res.status(400);
+    throw new Error("User already exists");
+  }
+
+  const adminUser = await User.create({
+    name,
+    email,
+    password,
+    role: "admin", 
+  });
+
+  if (adminUser) {
+    res.status(201).json({
+      _id: adminUser._id,
+      name: adminUser.name,
+      email: adminUser.email,
+      role: adminUser.role,
+      message: "تم إضافة الأدمن بنجاح",
+    });
+  } else {
+    res.status(400);
+    throw new Error("Invalid user data");
+  }
+});
+
+
 
 export {
   registerUser,
@@ -121,4 +161,5 @@ export {
   getUserProfile,
   updateUserProfile,
   updateProfilePicture,
+  addAdmin,
 };
