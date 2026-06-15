@@ -142,28 +142,30 @@ function AdminDashboardPage() {
           <div className="pointer-events-none absolute -right-24 top-6 h-56 w-56 rounded-full bg-cesar-cyan/10 blur-3xl" />
           <div className="pointer-events-none absolute left-0 top-24 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
 
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-3 text-right">
-              <div className="flex items-center justify-between">
-                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan">
+          <div className="relative flex flex-col gap-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-4 text-right">
+                <div className="inline-flex shrink-0 h-14 w-14 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan">
                   <ShieldCheck className="h-7 w-7" />
                 </div>
+                <div>
+                  <p className="text-sm text-cesar-gray">لوحة الإدارة</p>
+                  <h1 className="mt-1 text-3xl font-bold text-white sm:text-4xl">
+                    مراجعة المنشورات المعلقة
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+                    راجع المنشورات الجديدة، وافق عليها أو ارفضها من خلال واجهة
+                    سريعة وواضحة ومناسبة للعمل اليومي.
+                  </p>
+                </div>
+              </div>
+              <div className="shrink-0">
                 <Link
                   to="/admin/settings"
-                  className="rounded-xl border border-cesar-cyan/50 bg-cesar-cyan/10 px-4 py-2.5 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
+                  className="inline-flex items-center gap-2 rounded-xl border border-cesar-cyan/50 bg-cesar-cyan/10 px-5 py-3 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
                 >
                   إعدادات المتجر العامة
                 </Link>
-              </div>
-              <div>
-                <p className="text-sm text-cesar-gray">لوحة الإدارة</p>
-                <h1 className="mt-1 text-3xl font-bold text-white sm:text-4xl">
-                  مراجعة المنشورات المعلقة
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                  راجع المنشورات الجديدة، وافق عليها أو ارفضها من خلال واجهة
-                  سريعة وواضحة ومناسبة للعمل اليومي.
-                </p>
               </div>
             </div>
 
