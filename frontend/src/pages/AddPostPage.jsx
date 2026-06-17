@@ -1,9 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { useState, useRef, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   AlignRight,
-  DollarSign,
   FileText,
   ImagePlus,
   PoundSterling,
@@ -23,12 +23,12 @@ const initialForm = {
 
 function AddPostPage() {
   const { i18n } = useTranslation();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState(initialForm);
   const [selectedImages, setSelectedImages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const objectUrlCache = useRef(new Map());
 
@@ -49,6 +49,13 @@ function AddPostPage() {
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
   };
 
   const handleFileChange = (event) => {
@@ -59,6 +66,13 @@ function AddPostPage() {
       setSelectedImages(totalFiles.slice(0, 5));
     } else {
       setSelectedImages(totalFiles);
+    }
+    if (fieldErrors.images) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.images;
+        return next;
+      });
     }
   };
 
@@ -83,14 +97,41 @@ function AddPostPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
-    setError("");
-    setSuccess("");
+
+    const errors = {};
+    if (!formData.title.trim()) {
+      errors.title = "عنوان الإعلان مطلوب";
+    } else if (formData.title.trim().length < 3) {
+      errors.title = "العنوان يجب أن يكون 3 أحرف على الأقل";
+    }
+
+    if (!formData.description.trim()) {
+      errors.description = "وصف الإعلان مطلوب";
+    } else if (formData.description.trim().length < 10) {
+      errors.description = "الوصف يجب أن يكون 10 أحرف على الأقل";
+    }
+
+    if (formData.price === "" || formData.price === undefined || formData.price === null) {
+      errors.price = "السعر مطلوب";
+    } else if (Number(formData.price) < 0) {
+      errors.price = "السعر لا يمكن أن يكون سالباً";
+    }
+
+    if (!formData.category) {
+      errors.category = "يجب اختيار الفئة";
+    }
 
     if (selectedImages.length === 0) {
-      setError("يجب اختيار صورة واحدة على الأقل");
+      errors.images = "يجب اختيار صورة واحدة على الأقل";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       setLoading(false);
       return;
     }
+
+    setFieldErrors({});
 
     const payload = new FormData();
     payload.append("title", formData.title.trim());
@@ -106,13 +147,32 @@ function AddPostPage() {
         },
       });
 
-      setSuccess("تم إرسال إعلانك بنجاح وهو الآن قيد المراجعة من الإدارة.");
+      toast.success("تم إضافة الإعلان بنجاح!");
       resetForm();
+      navigate("/profile");
     } catch (requestError) {
-      setError(
-        requestError.response?.data?.message ||
-          "تعذر إرسال الإعلان. حاول مرة أخرى لاحقاً.",
-      );
+      if (requestError.response?.data?.errors) {
+        const backendErrors = {};
+        const errs = requestError.response.data.errors;
+        if (Array.isArray(errs)) {
+          errs.forEach((err) => {
+            const field = err.path || err.param;
+            if (field) {
+              backendErrors[field] = err.msg;
+            }
+          });
+        } else if (typeof errs === "object") {
+          Object.keys(errs).forEach((key) => {
+            backendErrors[key] = errs[key].message || errs[key];
+          });
+        }
+        setFieldErrors(backendErrors);
+      } else {
+        toast.error(
+          requestError.response?.data?.message ||
+            "تعذر إضافة الإعلان. حاول مرة أخرى لاحقاً.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -142,18 +202,6 @@ function AddPostPage() {
           </div>
         </div>
 
-        {error ? (
-          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
-            {error}
-          </div>
-        ) : null}
-
-        {success ? (
-          <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
-            {success}
-          </div>
-        ) : null}
-
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <label className="mr-1 text-sm font-medium text-slate-300">
@@ -166,13 +214,19 @@ function AddPostPage() {
               <input
                 type="text"
                 name="title"
-                required
                 value={formData.title}
                 onChange={handleChange}
                 placeholder="مثال: حساب PUBG مستوى متقدم"
-                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                className={`w-full rounded-xl border bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition ${
+                  fieldErrors.title
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                }`}
               />
             </div>
+            {fieldErrors.title && (
+              <p className="mt-1 mr-1 text-xs text-red-500">{fieldErrors.title}</p>
+            )}
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
@@ -186,10 +240,13 @@ function AddPostPage() {
                 </div>
                 <select
                   name="category"
-                  required
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full appearance-none rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                  className={`w-full appearance-none rounded-xl border bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition ${
+                    fieldErrors.category
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                  }`}
                 >
                   <option value="" disabled>
                     اختر الفئة
@@ -204,6 +261,9 @@ function AddPostPage() {
                   <option value="أخرى">أخرى</option>
                 </select>
               </div>
+              {fieldErrors.category && (
+                <p className="mt-1 mr-1 text-xs text-red-500">{fieldErrors.category}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -212,21 +272,26 @@ function AddPostPage() {
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500">
-                  {/* <DollarSign className="h-5 w-5" /> */}
                   <PoundSterling className="h-5 w-5" />
                 </div>
                 <input
                   type="number"
                   name="price"
-                  required
                   min="0"
                   step="0.01"
                   value={formData.price}
                   onChange={handleChange}
                   placeholder="0"
-                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                  className={`w-full rounded-xl border bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition ${
+                    fieldErrors.price
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                  }`}
                 />
               </div>
+              {fieldErrors.price && (
+                <p className="mt-1 mr-1 text-xs text-red-500">{fieldErrors.price}</p>
+              )}
             </div>
           </div>
 
@@ -240,21 +305,33 @@ function AddPostPage() {
               </div>
               <textarea
                 name="description"
-                required
                 rows="4"
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="اكتب تفاصيل الحساب، المستوى، المزايا، وأي معلومات مهمة للمشتري..."
-                className="w-full resize-none rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                className={`w-full resize-none rounded-xl border bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition ${
+                  fieldErrors.description
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                }`}
               />
             </div>
+            {fieldErrors.description && (
+              <p className="mt-1 mr-1 text-xs text-red-500">{fieldErrors.description}</p>
+            )}
           </div>
 
           <div className="space-y-2">
             <label className="mr-1 text-sm font-medium text-slate-300">
               صور الإعلان (حد أقصى 5 صور)
             </label>
-            <label className="flex cursor-pointer items-center gap-4 rounded-xl border border-dashed border-white/10 bg-black/40 px-4 py-4 transition hover:border-cesar-cyan/60 hover:bg-black/50">
+            <label
+              className={`flex cursor-pointer items-center gap-4 rounded-xl border border-dashed bg-black/40 px-4 py-4 transition ${
+                fieldErrors.images
+                  ? "border-red-500 hover:border-red-500"
+                  : "border-white/10 hover:border-cesar-cyan/60 hover:bg-black/50"
+              }`}
+            >
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan">
                 <ImagePlus className="h-6 w-6" />
               </div>
@@ -277,6 +354,9 @@ function AddPostPage() {
                 className="hidden"
               />
             </label>
+            {fieldErrors.images && (
+              <p className="mt-1 mr-1 text-xs text-red-500">{fieldErrors.images}</p>
+            )}
             {selectedImages.length > 0 && (
               <div className="flex flex-wrap gap-3 pt-2">
                 {selectedImages.map((file, index) => {

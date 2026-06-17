@@ -269,6 +269,22 @@ function AdminDashboardPage() {
                       </div>
                     )}
 
+                    {post.createdAt && (
+                      <span
+                        className={`absolute top-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-medium text-slate-200 border border-white/10 z-10 shadow-lg ${
+                          i18n.dir() === "rtl" ? "left-2" : "right-2"
+                        }`}
+                      >
+                        {(() => {
+                          const locale = i18n.language === "ar" ? "ar-EG" : "en-US";
+                          const date = new Date(post.createdAt);
+                          const formattedDate = date.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });
+                          const formattedTime = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+                          return `${formattedDate} • ${formattedTime}`;
+                        })()}
+                      </span>
+                    )}
+
                     <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2 rounded-full border border-cesar-cyan/20 bg-black/55 px-3 py-1.5 text-xs font-semibold text-cesar-cyan backdrop-blur-sm">
