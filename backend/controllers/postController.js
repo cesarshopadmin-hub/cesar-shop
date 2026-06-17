@@ -49,22 +49,20 @@ const updatePostStatus = asyncHandler(async (req, res) => {
     throw new Error("Post not found");
   }
 
-  const updateData = {
-    status,
-    rejectionReason: status === "rejected" ? rejectionReason || "" : "",
-  };
+  post.status = status;
+  post.rejectionReason = status === "rejected" ? rejectionReason || "" : "";
+
+  await post.save();
 
   if (status === "approved") {
-    updateData.createdAt = Date.now();
+    await Post.collection.updateOne(
+      { _id: post._id },
+      { $set: { createdAt: new Date() } }
+    );
+    post.createdAt = new Date(); // Update the object in memory for the frontend response
   }
 
-  const updatedPost = await Post.findByIdAndUpdate(
-    req.params.id,
-    { $set: updateData },
-    { new: true }
-  );
-
-  res.json(updatedPost);
+  res.json(post);
 });
 const getPostById = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id).populate("user", "name email phoneNumber profilePictureUrl");
