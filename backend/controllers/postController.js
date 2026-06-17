@@ -51,6 +51,9 @@ const updatePostStatus = asyncHandler(async (req, res) => {
 
   post.status = status;
   post.rejectionReason = status === "rejected" ? rejectionReason || "" : "";
+  if (status === "approved") {
+    post.createdAt = Date.now();
+  }
 
   const updatedPost = await post.save();
 
