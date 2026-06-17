@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -39,6 +40,7 @@ const statusMeta = {
 };
 
 function ProfilePage() {
+  const { t, i18n } = useTranslation();
   const { user, updateUser } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +135,7 @@ function ProfilePage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen px-4 py-10 font-cairo">
+    <div dir={i18n.dir()} className="min-h-screen px-4 py-10 font-cairo">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -327,7 +329,7 @@ function ProfilePage() {
               </Link>
             </div>
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {posts.map((post) => {
                 const meta = statusMeta[post.status] || statusMeta.pending;
                 const StatusIcon = meta.icon;
@@ -363,10 +365,10 @@ function ProfilePage() {
                           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${meta.className}`}
                         >
                           <StatusIcon className="h-4 w-4" />
-                          {meta.label}
+                          {t(`enums.${post.status}`, { defaultValue: meta.label })}
                         </span>
                         <span className="rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
-                          {post.category}
+                          {t(`enums.${post.category}`, { defaultValue: post.category })}
                         </span>
                       </div>
                     </div>

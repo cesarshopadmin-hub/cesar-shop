@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "logo": "Cesar Store",
+    "home": "Home",
+    "posts": "Posts",
+    "addPost": "Add Post",
+    "admin": "Admin",
+    "logout": "Logout",
+    "logoutShort": "Logout",
+    "profile": "Profile",
+    "login": "Login",
+    "loginShort": "Login",
+    "register": "Register",
+    "registerShort": "Register"
+  },
+  "home": {
+    "heroTitle": "Cesar Store",
+    "heroSubtitle": "A neon-themed gaming destination, fast, and optimized for showcasing links and connecting with the Cesar Store community.",
+    "loadingPortal": "Loading Cesar Portal...",
+    "retryBtn": "Retry",
+    "liveBadge": "CESAR STORE LIVE",
+    "bannerTitle": "Discover the official store links in one dashboard with a premium and fast experience.",
+    "bannerDescription": "An animated landing interface designed to deliver store alerts and social media links clearly and professionally on mobile and desktop.",
+    "channelsTitle": "Social Channels",
+    "linksCount": "Links",
+    "openLinkBtn": "Open Link",
+    "noLinks": "No social links added at the moment.",
+    "contactAdminTitle": "Contact Admin",
+    "contactAdminSubtitle": "Official approved numbers for technical support and middleman services.",
+    "adminLabel": "Cesar Admin",
+    "errorLoad": "Failed to load store settings. Please try again shortly."
+  },
+  "enums": {
+    "ألعاب (PUBG, FreeFire...)": "Games (PUBG, FreeFire...)",
+    "حسابات تيك توك": "TikTok Accounts",
+    "حسابات سوشيال ميديا": "Social Media Accounts",
+    "أخرى": "Others",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "telegram": "Telegram",
+    "tiktok": "TikTok",
+    "instagram": "Instagram",
+    "other": "Other"
+  }
+}

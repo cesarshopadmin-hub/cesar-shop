@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -34,7 +35,8 @@ function matchesCategory(postCategory, selectedCategory) {
 }
 
 function PostsPage() {
-  useDocumentTitle("Cesar Store | المنشورات");
+  const { t, i18n } = useTranslation();
+  useDocumentTitle(t("nav.logo") + " | " + t("nav.posts"));
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,7 @@ function PostsPage() {
 
   return (
     <section
-      dir="rtl"
+      dir={i18n.dir()}
       className="relative isolate min-h-screen overflow-hidden bg-cesar-darker px-4 py-6 font-cairo text-white sm:px-6 lg:px-8"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-black/70 via-black/45 to-transparent" />
@@ -112,10 +114,10 @@ function PostsPage() {
 
           <div className="grid gap-4 rounded-[2rem] border border-white/5 bg-cesar-dark/85 p-5 shadow-2xl shadow-black/30 backdrop-blur-xl lg:grid-cols-[1.1fr_0.9fr] lg:p-6">
             <div className="space-y-3">
-              <h1 className="text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
+              <h1 className="text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-3xl">
                 تصفح المنشورات المعتمدة في المتجر
               </h1>
-              <p className="max-w-2xl text-sm leading-7 text-cesar-gray sm:text-base lg:text-lg lg:leading-8">
+              <p className="max-w-2xl text-sm leading-7 text-cesar-gray sm:text-base lg:text-sm lg:leading-6">
                 ابحث بسرعة داخل المنشورات المفعلة واستخدم الفلتر للوصول إلى
                 الفئة التي تريدها دون تشتيت.
               </p>
@@ -152,8 +154,7 @@ function PostsPage() {
                       value={option.value}
                       className="bg-cesar-darker text-white"
                     >
-                    
-                      {option.label}
+                      {t(`enums.${option.value}`, { defaultValue: option.label })}
                     </option>
                   ))}
                 </select>
@@ -190,7 +191,7 @@ function PostsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.35 }}
-            className="grid gap-5 md:grid-cols-2 xl:grid-cols-3"
+            className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
             {filteredPosts.map((post, index) => {
               const imageUrl = Array.isArray(post.images)
@@ -226,7 +227,7 @@ function PostsPage() {
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2 rounded-full border border-cesar-cyan/20 bg-black/55 px-3 py-1.5 text-xs font-semibold text-cesar-cyan backdrop-blur-sm">
                         <Tags className="h-4 w-4" />
-                        {post.category || "غير محدد"}
+                        {t(`enums.${post.category}`, { defaultValue: post.category || t("enums.غير محدد", { defaultValue: "غير محدد" }) })}
                       </span>
                     </div>
                   </div>

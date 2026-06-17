@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useRef, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
@@ -21,6 +22,7 @@ const initialForm = {
 };
 
 function AddPostPage() {
+  const { i18n } = useTranslation();
   const [formData, setFormData] = useState(initialForm);
   const [selectedImages, setSelectedImages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -117,7 +119,7 @@ function AddPostPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen px-4 py-10 font-cairo">
+    <div dir={i18n.dir()} className="min-h-screen px-4 py-10 font-cairo">
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}

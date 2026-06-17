@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -43,7 +44,8 @@ function getLinkIcon(platform) {
 }
 
 function HomePage() {
-  useDocumentTitle("Cesar Store | الرئيسية");
+  const { t, i18n } = useTranslation();
+  useDocumentTitle(t("nav.logo") + " | " + t("nav.home"));
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -85,7 +87,7 @@ function HomePage() {
           return;
         }
 
-        setError("تعذر تحميل إعدادات المتجر الآن. حاول مرة أخرى بعد قليل.");
+        setError(t("home.errorLoad"));
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -112,7 +114,7 @@ function HomePage() {
 
   return (
     <section
-      dir="rtl"
+      dir={i18n.dir()}
       className="relative isolate min-h-screen overflow-hidden bg-cesar-darker px-4 py-6 font-cairo text-white sm:px-6 lg:px-8"
     >
       {/* <ParticleBackground /> */}
@@ -144,15 +146,14 @@ function HomePage() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 my-4"
           >
-            <CesarLogo className="w-24 h-24 md:w-32 md:h-32 animate-pulse drop-shadow-[0_0_20px_rgba(0,209,255,0.8)]" />
-            <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cesar-cyan to-white drop-shadow-[0_0_15px_rgba(0,209,255,0.5)] pb-4 leading-normal">
-              متجر سيزار
+            <CesarLogo className="w-24 h-24 md:w-20 md:h-20 animate-pulse drop-shadow-[0_0_20px_rgba(0,209,255,0.8)]" />
+            <h1 className="text-5xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cesar-cyan to-white drop-shadow-[0_0_15px_rgba(0,209,255,0.5)] pb-4 leading-normal">
+              {t("home.heroTitle")}
             </h1>
           </motion.div>
 
           <p className="max-w-2xl text-sm leading-7 text-cesar-gray sm:text-base">
-            وجهة ألعاب بلمسة نيونية، سريعة، ومهيأة لعرض الروابط والتواصل مع
-            مجتمع Cesar Store.
+            {t("home.heroSubtitle")}
           </p>
         </motion.header>
 
@@ -184,7 +185,7 @@ function HomePage() {
                 />
               </motion.div>
               <p className="text-sm text-cesar-gray">
-                جارٍ تحميل بوابة سيزار...
+                {t("home.loadingPortal")}
               </p>
             </div>
           </div>
@@ -200,7 +201,7 @@ function HomePage() {
                 className="mt-5 inline-flex items-center gap-2 rounded-full border border-red-400/25 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 hover:text-white"
               >
                 <RefreshCw className="h-4 w-4" />
-                إعادة المحاولة
+                {t("home.retryBtn")}
               </button>
             </div>
           </div>
@@ -226,30 +227,29 @@ function HomePage() {
             >
               <div className="space-y-4">
                 <div className="inline-flex rounded-full border border-cesar-cyan/20 bg-cesar-cyan/10 px-4 py-2 text-xs font-semibold tracking-[0.25em] text-cesar-cyan">
-                  CESAR STORE LIVE
+                  {t("home.liveBadge")}
                 </div>
-                <h2 className="text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl lg:leading-tight">
-                  اكتشف روابط المتجر الرسمية في لوحة واحدة بتجربة فاخرة وسريعة.
+                <h2 className="text-3xl font-bold leading-tight sm:text-4xl lg:text-3xl lg:leading-tight">
+                  {t("home.bannerTitle")}
                 </h2>
-                <p className="max-w-2xl text-sm leading-7 text-cesar-gray sm:text-base lg:text-lg lg:leading-8">
-                  واجهة استقبال متحركة مصممة لتقديم تنبيهات المتجر وروابط
-                  التواصل الاجتماعي بشكل واضح واحترافي على الهاتف وسطح المكتب.
+                <p className="max-w-2xl text-sm leading-7 text-cesar-gray sm:text-base lg:text-sm lg:leading-6">
+                  {t("home.bannerDescription")}
                 </p>
               </div>
             </motion.section>
 
             <motion.section variants={containerVariants} className="space-y-4">
               <div className="flex items-center justify-between gap-4">
-                <h3 className="text-xl font-semibold text-white sm:text-xl md:text-2xl lg:text-3xl">
-                  قنوات التواصل
+                <h3 className="text-xl font-semibold text-white sm:text-xl md:text-2xl lg:text-2xl">
+                  {t("home.channelsTitle")}
                 </h3>
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-cesar-gray">
-                  {cards.length} روابط
+                  {cards.length} {t("home.linksCount")}
                 </span>
               </div>
 
               {cards.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {cards.map((link) => {
                     const Icon = link.Icon;
 
@@ -271,7 +271,7 @@ function HomePage() {
                                 <Icon className="h-5 w-5" />
                               </span>
                               <div>
-                                <h4 className="text-base font-bold text-white md:text-xl lg:text-2xl">
+                                <h4 className="text-base font-bold text-white md:text-base lg:text-lg">
                                   {" "}
                                   {link.title}
                                 </h4>
@@ -281,16 +281,16 @@ function HomePage() {
                               </div>
                             </div>
                             {link.subtitle ? (
-                              <p className="max-w-sm text-sm leading-6 text-cesar-gray md:text-base lg:text-lg lg:mt-1">
+                              <p className="max-w-sm text-sm leading-6 text-cesar-gray md:text-sm lg:text-sm lg:mt-1">
                                 {" "}
                                 {link.subtitle}
                               </p>
                             ) : null}
                           </div>
 
-                          <div className="shrink-0 rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs md:text-sm lg:text-base lg:px-5 lg:py-2 text-slate-300 transition group-hover:border-cesar-cyan/25 group-hover:text-white font-medium">
+                          <div className="shrink-0 rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs md:text-sm lg:text-sm lg:px-4 lg:py-1.5 text-slate-300 transition group-hover:border-cesar-cyan/25 group-hover:text-white font-medium">
                             {" "}
-                            افتح الرابط
+                            {t("home.openLinkBtn")}
                           </div>
                         </div>
                       </motion.a>
@@ -299,7 +299,7 @@ function HomePage() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-white/5 bg-white/5 px-6 py-8 text-sm text-cesar-gray backdrop-blur-sm">
-                  لا توجد روابط اجتماعية مضافة حاليًا.
+                  {t("home.noLinks")}
                 </div>
               )}
             </motion.section>
@@ -315,10 +315,10 @@ function HomePage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white lg:text-xl">
-                      تواصل مع الإدارة
+                      {t("home.contactAdminTitle")}
                     </h3>
                     <p className="text-xs text-cesar-gray lg:text-sm">
-                      الأرقام الرسمية المعتمدة للدعم الفني والوساطة
+                      {t("home.contactAdminSubtitle")}
                     </p>
                   </div>
                 </div>
@@ -346,7 +346,7 @@ function HomePage() {
                           {displayNum}
                         </span>
                         <span className="text-[10px] text-cesar-gray">
-                          إدارة سيزار {index + 1}
+                          {t("home.adminLabel")} {index + 1}
                         </span>
                       </motion.a>
                     );

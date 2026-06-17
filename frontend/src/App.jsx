@@ -20,6 +20,7 @@ import PostDetailsPage from "./pages/PostDetailsPage.jsx";
 import GuestGuard from "./components/guards/GuestGuard.jsx";
 import AuthGuard from "./components/guards/AuthGuard.jsx";
 import AdminGuard from "./components/guards/AdminGuard.jsx";
+import LanguageSwitcher from "./components/LanguageSwitcher.jsx";
 
 function App() {
   return (
@@ -71,6 +72,7 @@ function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        {/* <LanguageSwitcher /> */}
         <ToastContainer position="top-right" autoClose={2500} theme="dark" />
       </BrowserRouter>
     </AuthProvider>

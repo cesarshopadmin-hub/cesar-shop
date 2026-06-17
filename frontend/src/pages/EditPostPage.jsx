@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -21,6 +22,7 @@ const initialForm = {
 };
 
 function EditPostPage() {
+  const { i18n } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -142,7 +144,7 @@ function EditPostPage() {
   }
 
   return (
-    <div dir="rtl" className="min-h-screen px-4 py-10 font-cairo bg-cesar-darker">
+    <div dir={i18n.dir()} className="min-h-screen px-4 py-10 font-cairo bg-cesar-darker">
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}

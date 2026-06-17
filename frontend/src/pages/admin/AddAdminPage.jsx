@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -6,6 +7,7 @@ import { toast } from "react-toastify";
 import api from "../../Services/api.js";
 
 function AddAdminPage() {
+  const { i18n } = useTranslation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -70,7 +72,7 @@ function AddAdminPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-cesar-darker flex items-center justify-center px-4 py-12 font-cairo text-white">
+    <div dir={i18n.dir()} className="min-h-screen bg-cesar-darker flex items-center justify-center px-4 py-12 font-cairo text-white">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -18,6 +19,7 @@ import { toast } from "react-toastify";
 import api from "../../Services/api.js";
 
 function AdminDashboardPage() {
+  const { t, i18n } = useTranslation();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -129,7 +131,7 @@ function AdminDashboardPage() {
 
   return (
     <div
-      dir="rtl"
+      dir={i18n.dir()}
       className="min-h-screen bg-cesar-darker px-4 py-8 font-cairo text-white sm:px-6 lg:px-8"
     >
       <motion.div
@@ -151,7 +153,7 @@ function AdminDashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-cesar-gray">لوحة الإدارة</p>
-                  <h1 className="mt-1 text-3xl font-bold text-white sm:text-4xl">
+                  <h1 className="mt-1 text-2xl font-bold text-white md:text-3xl">
                     مراجعة المنشورات المعلقة
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
@@ -177,7 +179,7 @@ function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3 ">
               <div className="rounded-2xl border border-white/5 bg-black/30 px-4 py-3 text-right">
                 <p className="text-xs text-cesar-gray">المنشورات المعلقة</p>
                 <p className="mt-2 text-2xl font-bold text-white">
@@ -190,12 +192,12 @@ function AdminDashboardPage() {
                   موافقة أو رفض لكل منشور
                 </p>
               </div>
-              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-right">
+              {/* <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-right">
                 <p className="text-xs text-cyan-200">الحالة</p>
                 <p className="mt-2 text-sm font-semibold text-cyan-100">
                   RTL + Neon Dark UI
                 </p>
-              </div>
+              </div> */}
             </div>
           </div>
         </section>
@@ -235,7 +237,7 @@ function AdminDashboardPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {posts.map((post, index) => {
               const imageUrl = Array.isArray(post.images)
                 ? post.images[0]
@@ -271,7 +273,7 @@ function AdminDashboardPage() {
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2 rounded-full border border-cesar-cyan/20 bg-black/55 px-3 py-1.5 text-xs font-semibold text-cesar-cyan backdrop-blur-sm">
                         <Tags className="h-4 w-4" />
-                        {post.category || "غير محدد"}
+                        {t(`enums.${post.category}`, { defaultValue: post.category || t("enums.غير محدد", { defaultValue: "غير محدد" }) })}
                       </span>
                     </div>
                   </div>

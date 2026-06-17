@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -14,6 +15,7 @@ import { toast } from "react-toastify";
 import api from "../Services/api";
 
 const PostDetailsPage = () => {
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
@@ -57,7 +59,7 @@ const PostDetailsPage = () => {
     return (
       <div
         className="min-h-screen bg-cesar-darker font-cairo flex items-center justify-center text-white"
-        dir="rtl"
+        dir={i18n.dir()}
       >
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cesar-cyan"></div>
       </div>
@@ -68,7 +70,7 @@ const PostDetailsPage = () => {
     return (
       <div
         className="min-h-screen bg-cesar-darker font-cairo flex flex-col items-center justify-center text-white"
-        dir="rtl"
+        dir={i18n.dir()}
       >
         <p className="text-red-500 mb-4">{error || "الإعلان غير موجود"}</p>
         <button
@@ -84,7 +86,7 @@ const PostDetailsPage = () => {
   return (
     <div
       className="min-h-screen bg-cesar-darker text-white font-cairo p-4 md:p-8"
-      dir="rtl"
+      dir={i18n.dir()}
     >
       <div className="max-w-6xl mx-auto space-y-8">
         <button
@@ -155,7 +157,7 @@ const PostDetailsPage = () => {
             <div className="mb-6">
               <div className="inline-flex items-center gap-2 bg-cesar-cyan/10 text-cesar-cyan px-4 py-1.5 rounded-full text-sm font-medium mb-4 border border-cesar-cyan/20 shadow-[0_0_10px_rgba(0,255,255,0.1)]">
                 <Tag className="w-4 h-4" />
-                <span>{post.category || "غير محدد"}</span>
+                <span>{t(`enums.${post.category}`, { defaultValue: post.category || t("enums.غير محدد", { defaultValue: "غير محدد" }) })}</span>
               </div>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
                 {post.title}

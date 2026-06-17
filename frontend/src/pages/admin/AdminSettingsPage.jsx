@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -17,6 +18,7 @@ import { toast } from "react-toastify";
 import api from "../../Services/api.js";
 
 function AdminSettingsPage() {
+  const { t, i18n } = useTranslation();
   const [alertMessage, setAlertMessage] = useState("");
   const [adminNumbers, setAdminNumbers] = useState([]);
   const [socialLinks, setSocialLinks] = useState([]);
@@ -150,7 +152,7 @@ function AdminSettingsPage() {
 
   return (
     <div
-      dir="rtl"
+      dir={i18n.dir()}
       className="min-h-screen bg-cesar-darker px-4 pt-8 pb-32 md:pb-12 font-cairo text-white sm:px-6 lg:px-8"
     >
       <motion.div
@@ -316,12 +318,12 @@ function AdminSettingsPage() {
                             }
                             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan"
                           >
-                            <option value="whatsapp">واتساب</option>
-                            <option value="facebook">فيسبوك</option>
-                            <option value="telegram">تيليجرام</option>
-                            <option value="tiktok">تيك توك</option>
-                            <option value="instagram">انستجرام</option>
-                            <option value="other">أخرى / منصة مختلفة</option>
+                            <option value="whatsapp">{t("enums.whatsapp", { defaultValue: "واتساب" })}</option>
+                            <option value="facebook">{t("enums.facebook", { defaultValue: "فيسبوك" })}</option>
+                            <option value="telegram">{t("enums.telegram", { defaultValue: "تيليجرام" })}</option>
+                            <option value="tiktok">{t("enums.tiktok", { defaultValue: "تيك توك" })}</option>
+                            <option value="instagram">{t("enums.instagram", { defaultValue: "انستجرام" })}</option>
+                            <option value="other">{t("enums.other", { defaultValue: "أخرى / منصة مختلفة" })}</option>
                           </select>
                         </div>
 

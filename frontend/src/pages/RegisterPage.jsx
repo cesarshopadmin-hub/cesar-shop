@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -5,6 +6,7 @@ import { UserPlus, Mail, Lock, User, Phone, Loader2, Eye, EyeOff } from "lucide-
 import { useAuth } from "../context/AuthContext";
 
 function RegisterPage() {
+  const { i18n } = useTranslation();
   const [formData, setFormData] = useState({ name: "", email: "", phoneNumber: "", password: "", confirmPassword: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -84,7 +86,7 @@ function RegisterPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-[85vh] flex items-center justify-center px-4 py-12 font-cairo">
+    <div dir={i18n.dir()} className="min-h-[85vh] flex items-center justify-center px-4 py-12 font-cairo">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <div className="bg-cesar-dark/80 backdrop-blur-md border border-white/5 rounded-[2rem] p-8 shadow-2xl shadow-black/50 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-cesar-cyan/50 to-transparent"></div>
@@ -120,7 +122,7 @@ function RegisterPage() {
             <div className="space-y-1">
               <div className="relative">
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500"><Phone className="h-5 w-5" /></div>
-                <input type="tel" name="phoneNumber" required value={formData.phoneNumber} onChange={handleChange} onBlur={handleBlur} className={`w-full bg-black/40 border ${fieldErrors.phoneNumber ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan'} text-white rounded-xl pr-10 pl-4 py-3 focus:ring-1 transition outline-none text-sm`} placeholder="رقم الهاتف" dir="rtl" />
+                <input type="tel" name="phoneNumber" required value={formData.phoneNumber} onChange={handleChange} onBlur={handleBlur} className={`w-full bg-black/40 border ${fieldErrors.phoneNumber ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan'} text-white rounded-xl pr-10 pl-4 py-3 focus:ring-1 transition outline-none text-sm`} placeholder="رقم الهاتف" dir={i18n.dir()} />
               </div>
               {fieldErrors.phoneNumber && <p className="text-red-400 text-xs pr-2">{fieldErrors.phoneNumber}</p>}
             </div>
