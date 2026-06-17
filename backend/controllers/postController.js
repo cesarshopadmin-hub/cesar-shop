@@ -18,25 +18,23 @@ const createPost = asyncHandler(async (req, res) => {
 });
 
 const getApprovedPosts = asyncHandler(async (req, res) => {
-  const posts = await Post.find({ status: "approved" }).populate(
-    "user",
-    "name profilePictureUrl",
-  );
+  const posts = await Post.find({ status: "approved" })
+    .populate("user", "name profilePictureUrl")
+    .sort({ createdAt: -1 });
 
   res.json(posts);
 });
 
 const getMyPosts = asyncHandler(async (req, res) => {
-  const posts = await Post.find({ user: req.user._id });
+  const posts = await Post.find({ user: req.user._id }).sort({ createdAt: -1 });
 
   res.json(posts);
 });
 
 const getPendingPosts = asyncHandler(async (req, res) => {
-  const posts = await Post.find({ status: "pending" }).populate(
-    "user",
-    "name email",
-  );
+  const posts = await Post.find({ status: "pending" })
+    .populate("user", "name email")
+    .sort({ createdAt: -1 });
 
   res.json(posts);
 });
