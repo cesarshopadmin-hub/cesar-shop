@@ -49,13 +49,20 @@ const updatePostStatus = asyncHandler(async (req, res) => {
     throw new Error("Post not found");
   }
 
-  post.status = status;
-  post.rejectionReason = status === "rejected" ? rejectionReason || "" : "";
+  const updateData = {
+    status,
+    rejectionReason: status === "rejected" ? rejectionReason || "" : "",
+  };
+
   if (status === "approved") {
-    post.createdAt = Date.now();
+    updateData.createdAt = Date.now();
   }
 
-  const updatedPost = await post.save();
+  const updatedPost = await Post.findByIdAndUpdate(
+    req.params.id,
+    { $set: updateData },
+    { new: true }
+  );
 
   res.json(updatedPost);
 });
