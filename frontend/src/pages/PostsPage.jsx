@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, Search, Tags, User, ArrowLeft, Sparkles } from "lucide-react";
 import api from "../Services/api.js";
+import { normalizeText, matchesCategory } from "../utils/postHelpers.js";
 import useDocumentTitle from "../hooks/useDocumentTitle.js";
 
 const categoryOptions = [
@@ -14,25 +15,6 @@ const categoryOptions = [
   { value: "أخرى", label: "أخرى" },
 ];
 
-function normalizeText(value) {
-  return String(value || "")
-    .toLowerCase()
-    .trim();
-}
-
-function matchesCategory(postCategory, selectedCategory) {
-  if (selectedCategory === "all") {
-    return true;
-  }
-
-  const normalizedPostCategory = normalizeText(postCategory);
-
-  if (selectedCategory === "ألعاب") {
-    return normalizedPostCategory.startsWith("ألعاب");
-  }
-
-  return normalizedPostCategory === normalizeText(selectedCategory);
-}
 
 function PostsPage() {
   const { t, i18n } = useTranslation();
