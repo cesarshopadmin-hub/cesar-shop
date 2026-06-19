@@ -13,11 +13,14 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api";
+import { useAuth } from "../context/AuthContext";
 
 const PostDetailsPage = () => {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -98,6 +101,7 @@ const PostDetailsPage = () => {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          {/* ── Image gallery ── */}
           <div className="flex flex-col">
             <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden border border-cesar-cyan/30 shadow-[0_0_15px_rgba(0,255,255,0.1)] relative group">
               <img
@@ -109,7 +113,7 @@ const PostDetailsPage = () => {
                 alt={post.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
-              
+
               {post.images && post.images.length > 1 && (
                 <>
                   <button
@@ -153,11 +157,18 @@ const PostDetailsPage = () => {
             )}
           </div>
 
+          {/* ── Post details + seller info ── */}
           <div className="flex flex-col">
             <div className="mb-6">
               <div className="inline-flex items-center gap-2 bg-cesar-cyan/10 text-cesar-cyan px-4 py-1.5 rounded-full text-sm font-medium mb-4 border border-cesar-cyan/20 shadow-[0_0_10px_rgba(0,255,255,0.1)]">
                 <Tag className="w-4 h-4" />
-                <span>{t(`enums.${post.category}`, { defaultValue: post.category || t("enums.غير محدد", { defaultValue: "غير محدد" }) })}</span>
+                <span>
+                  {t(`enums.${post.category}`, {
+                    defaultValue:
+                      post.category ||
+                      t("enums.غير محدد", { defaultValue: "غير محدد" }),
+                  })}
+                </span>
               </div>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
                 {post.title}
@@ -173,6 +184,7 @@ const PostDetailsPage = () => {
               </p>
             </div>
 
+            {/* ── Seller information ── */}
             {post.user && (
               <div className="bg-black/40 border border-gray-800 rounded-2xl p-6 mt-auto shadow-lg backdrop-blur-sm">
                 <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-3 mb-5">
@@ -180,6 +192,7 @@ const PostDetailsPage = () => {
                 </h3>
 
                 <div className="space-y-4">
+                  {/* Name — always visible to everyone */}
                   <div className="flex items-center gap-4 text-gray-300">
                     <div className="bg-gray-800/50 p-2 shrink-0 rounded-lg">
                       <User className="w-5 h-5 text-cesar-cyan" />
@@ -189,16 +202,23 @@ const PostDetailsPage = () => {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-4 text-gray-300">
-                    <div className="bg-gray-800/50 p-2 shrink-0 rounded-lg">
-                      <Mail className="w-5 h-5 text-cesar-cyan" />
+                  {/* Admin-only: Email */}
+                  {isAdmin && (
+                    <div className="flex items-center gap-4 text-gray-300">
+                      <div className="bg-gray-800/50 p-2 shrink-0 rounded-lg">
+                        <Mail className="w-5 h-5 text-cesar-cyan" />
+                      </div>
+                      <span
+                        dir="ltr"
+                        className="font-medium break-all text-sm sm:text-base"
+                      >
+                        {post.user.email}
+                      </span>
                     </div>
-                    <span dir="ltr" className="font-medium break-all text-sm sm:text-base">
-                      {post.user.email}
-                    </span>
-                  </div>
+                  )}
 
-                  {post.user.phoneNumber && (
+                  {/* Admin-only: raw phone number */}
+                  {isAdmin && post.user.phoneNumber && (
                     <div className="flex items-center gap-4 text-gray-300">
                       <div className="bg-gray-800/50 p-2 shrink-0 rounded-lg">
                         <Phone className="w-5 h-5 text-cesar-cyan" />
@@ -210,9 +230,13 @@ const PostDetailsPage = () => {
                   )}
                 </div>
 
-                {post.user.phoneNumber && (
+                {/* Admin-only: WhatsApp CTA */}
+                {isAdmin && post.user.phoneNumber && (
                   <a
-                    href={`https://wa.me/20${post.user.phoneNumber.replace(/^0/, "")}`}
+                    href={`https://wa.me/20${post.user.phoneNumber.replace(
+                      /^0/,
+                      ""
+                    )}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-6 flex items-center justify-center gap-3 w-full py-4 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/50 hover:shadow-[0_0_20px_rgba(37,211,102,0.3)] rounded-xl font-bold text-lg transition-all duration-300 group"

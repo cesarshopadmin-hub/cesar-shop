@@ -237,7 +237,7 @@ function AdminDashboardPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch">
             {posts.map((post, index) => {
               const imageUrl = Array.isArray(post.images)
                 ? post.images[0]
@@ -254,9 +254,9 @@ function AdminDashboardPage() {
                     duration: 0.25,
                     delay: Math.min(index * 0.05, 0.25),
                   }}
-                  className="overflow-hidden rounded-[1.75rem] border border-white/5 bg-cesar-dark/80 shadow-2xl shadow-black/40 backdrop-blur-md"
+                  className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-white/5 bg-cesar-dark/80 shadow-2xl shadow-black/40 backdrop-blur-md"
                 >
-                  <div className="relative aspect-[16/10] overflow-hidden bg-black/40">
+                  <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
                     {imageUrl ? (
                       <img
                         src={imageUrl}
@@ -294,7 +294,7 @@ function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 p-5 text-right">
+                  <div className="flex flex-1 flex-col justify-between p-5 text-right">
                     <div className="space-y-2">
                       <h2 className="line-clamp-2 text-lg font-bold text-white">
                         {post.title}
@@ -304,64 +304,66 @@ function AdminDashboardPage() {
                       </p>
                     </div>
 
-                    <div className="grid gap-3 rounded-2xl border border-white/5 bg-black/30 p-4 text-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-cesar-gray">السعر</span>
-                        <span className="font-bold text-cesar-cyan">
-                          {Number(post.price || 0).toLocaleString()} ج.م
-                        </span>
+                    <div className="mt-4 flex flex-col gap-3">
+                      <div className="grid gap-3 rounded-2xl border border-white/5 bg-black/30 p-4 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-cesar-gray">السعر</span>
+                          <span className="font-bold text-cesar-cyan">
+                            {Number(post.price || 0).toLocaleString()} ج.م
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-cesar-gray">اسم المستخدم</span>
+                          <span className="font-semibold text-white">
+                            {userName}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-cesar-gray">
+                            البريد الإلكتروني
+                          </span>
+                          <span
+                            className="truncate font-semibold text-white"
+                            dir="ltr"
+                          >
+                            {userEmail}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-cesar-gray">اسم المستخدم</span>
-                        <span className="font-semibold text-white">
-                          {userName}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-cesar-gray">
-                          البريد الإلكتروني
-                        </span>
-                        <span
-                          className="truncate font-semibold text-white"
-                          dir="ltr"
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <Link
+                          to={"/posts/" + post._id}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-3 font-bold text-cesar-gray hover:text-white hover:bg-white/10 transition duration-300"
                         >
-                          {userEmail}
-                        </span>
+                          <Eye className="h-5 w-5" />
+                          عرض التفاصيل
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => handleApprove(post._id)}
+                          disabled={actionLoadingId === post._id || isRejecting}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 font-bold text-emerald-300 transition duration-300 hover:bg-emerald-500/20 hover:shadow-[0_0_18px_rgba(16,185,129,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {actionLoadingId === post._id ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-5 w-5" />
+                          )}
+                          موافقة
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => openRejectModal(post._id)}
+                          disabled={actionLoadingId === post._id}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 font-bold text-rose-300 transition duration-300 hover:bg-rose-500/20 hover:shadow-[0_0_18px_rgba(244,63,94,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <XCircle className="h-5 w-5" />
+                          رفض
+                        </button>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <Link
-                        to={"/posts/" + post._id}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-3 font-bold text-cesar-gray hover:text-white hover:bg-white/10 transition duration-300"
-                      >
-                        <Eye className="h-5 w-5" />
-                        عرض التفاصيل
-                      </Link>
-
-                      <button
-                        type="button"
-                        onClick={() => handleApprove(post._id)}
-                        disabled={actionLoadingId === post._id || isRejecting}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 font-bold text-emerald-300 transition duration-300 hover:bg-emerald-500/20 hover:shadow-[0_0_18px_rgba(16,185,129,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {actionLoadingId === post._id ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="h-5 w-5" />
-                        )}
-                        موافقة
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => openRejectModal(post._id)}
-                        disabled={actionLoadingId === post._id}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 font-bold text-rose-300 transition duration-300 hover:bg-rose-500/20 hover:shadow-[0_0_18px_rgba(244,63,94,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <XCircle className="h-5 w-5" />
-                        رفض
-                      </button>
                     </div>
                   </div>
                 </motion.article>

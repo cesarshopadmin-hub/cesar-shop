@@ -173,7 +173,7 @@ function PostsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.35 }}
-            className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch"
           >
             {filteredPosts.map((post, index) => {
               const imageUrl = Array.isArray(post.images)
@@ -190,9 +190,9 @@ function PostsPage() {
                     duration: 0.25,
                     delay: Math.min(index * 0.05, 0.25),
                   }}
-                  className="overflow-hidden rounded-[1.75rem] border border-white/5 bg-cesar-dark/80 shadow-2xl shadow-black/40 backdrop-blur-md"
+                  className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-white/5 bg-cesar-dark/80 shadow-2xl shadow-black/40 backdrop-blur-md"
                 >
-                  <div className="relative aspect-[16/10] overflow-hidden bg-black/40">
+                  <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
                     {imageUrl ? (
                       <img
                         src={imageUrl}
@@ -230,7 +230,7 @@ function PostsPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 p-5 text-right">
+                  <div className="flex flex-1 flex-col justify-between p-5 text-right">
                     <div className="space-y-2">
                       <h2 className="line-clamp-2 text-lg font-bold text-white">
                         {post.title}
@@ -240,28 +240,30 @@ function PostsPage() {
                       </p>
                     </div>
 
-                    <div className="grid gap-3 rounded-2xl border border-white/5 bg-black/30 p-4 text-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-cesar-gray">السعر</span>
-                        <span className="font-bold text-cesar-cyan">
-                          {Number(post.price || 0).toLocaleString()} ج.م
-                        </span>
+                    <div className="mt-4 flex flex-col gap-3">
+                      <div className="grid gap-3 rounded-2xl border border-white/5 bg-black/30 p-4 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-cesar-gray">السعر</span>
+                          <span className="font-bold text-cesar-cyan">
+                            {Number(post.price || 0).toLocaleString()} ج.م
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-cesar-gray">اسم المستخدم</span>
+                          <span className="font-semibold text-white">
+                            {userName}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-cesar-gray">اسم المستخدم</span>
-                        <span className="font-semibold text-white">
-                          {userName}
-                        </span>
-                      </div>
-                    </div>
 
-                    <Link
-                      to={`/posts/${post._id}`}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-3 font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
-                    >
-                      عرض التفاصيل
-                      <ArrowLeft className="h-4 w-4" />
-                    </Link>
+                      <Link
+                        to={`/posts/${post._id}`}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-3 font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
+                      >
+                        عرض التفاصيل
+                        <ArrowLeft className="h-4 w-4" />
+                      </Link>
+                    </div>
                   </div>
                 </motion.article>
               );

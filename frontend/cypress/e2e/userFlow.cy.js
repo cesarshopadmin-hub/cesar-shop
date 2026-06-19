@@ -86,6 +86,13 @@ describe("User Authentication and Post Creation Flow", () => {
         body: { message: "تم إضافة الإعلان بنجاح!" },
       }).as("createPost");
 
+      // Stub the GET /api/posts/my-posts endpoint so navigating to /profile
+      // does not request the real backend and fail with a 401 using the mock token.
+      cy.intercept("GET", "/api/posts/my-posts", {
+        statusCode: 200,
+        body: [],
+      }).as("myPosts");
+
       cy.visit("/add-post");
     });
 
