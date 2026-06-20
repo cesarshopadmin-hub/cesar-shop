@@ -8,6 +8,7 @@ import authRoutes from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
+import scammerRoutes from "./routes/scammerRoutes.js";
 import { errorHandler } from "./middlewares/errorMiddleware.js";
 import { setupSwagger } from "./swagger.js";
 
@@ -33,6 +34,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/scammers", scammerRoutes);
 
 // Setup Swagger Documentation
 setupSwagger(app);

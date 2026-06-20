@@ -8,6 +8,8 @@ import {
   updateUserProfile,
   updateProfilePicture,
   addAdmin,
+  getAllUsers,
+  toggleBlockUser,
 } from "../controllers/authController.js";
 import { protect, admin } from "../middlewares/authMiddleware.js";
 
@@ -31,21 +33,25 @@ router.post(
       .trim()
       .isLength({ min: 3 })
       .withMessage("Name must be at least 3 characters long"),
-    body("email")
+    body("identifier")
       .trim()
-      .isEmail()
-      .normalizeEmail()
-      .withMessage("Please enter a valid email address"),
+      .notEmpty()
+      .withMessage("البريد الإلكتروني أو رقم الهاتف مطلوب")
+      .custom((value) => {
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        const cleanValue = value.replace(/[\s\-\(\)]/g, "");
+        const isPhone = /^\+?[1-9]\d{6,14}$/.test(cleanValue);
+        if (!isEmail && !isPhone) {
+          throw new Error("يجب إدخال بريد إلكتروني صالح أو رقم هاتف دولي صالح");
+        }
+        return true;
+      }),
     body("password")
       .isLength({ min: 6 })
       .withMessage("Password must be at least 6 characters long"),
     body("confirmPassword")
       .notEmpty()
       .withMessage("Confirm password is required"),
-    body("phoneNumber")
-      .optional({ checkFalsy: true })
-      .matches(/^01[0125][0-9]{8}$/)
-      .withMessage("Phone number must be a valid 11-digit Egyptian number"),
   ],
   handleValidationErrors,
   registerUser
@@ -54,10 +60,10 @@ router.post(
 router.post(
   "/login",
   [
-    body("email")
+    body("identifier")
       .trim()
-      .isEmail()
-      .withMessage("Please enter a valid email address"),
+      .notEmpty()
+      .withMessage("البريد الإلكتروني أو رقم الهاتف مطلوب"),
     body("password")
       .notEmpty()
       .withMessage("Password is required"),
@@ -70,5 +76,9 @@ router.get("/profile", protect, getUserProfile);
 router.put("/profile", protect, updateUserProfile);
 router.put("/profile-picture", protect, upload.single("profilePicture"), updateProfilePicture);
 router.post("/add-admin", protect, admin, addAdmin);
+
+// Admin-only User management routes
+router.get("/users", protect, admin, getAllUsers);
+router.put("/users/:id/block", protect, admin, toggleBlockUser);
 
 export default router;

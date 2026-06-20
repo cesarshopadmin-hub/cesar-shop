@@ -3,6 +3,13 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
+    identifier: {
+      type: String,
+      required: [true, "Identifier is required"],
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     name: {
       type: String,
       required: [true, "Name is required"],
@@ -10,10 +17,9 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, "Email is required"],
-      unique: true,
       trim: true,
       lowercase: true,
+      default: "",
     },
     password: {
       type: String,
@@ -29,6 +35,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["user", "admin"],
       default: "user",
+    },
+    isBlocked: {
+      type: Boolean,
+      default: false,
     },
     profilePictureUrl: {
       type: String,
