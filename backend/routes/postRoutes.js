@@ -30,7 +30,10 @@ const handleValidationErrors = (req, res, next) => {
 router.post(
   "/",
   protect,
-  upload.array("images", 5),
+  upload.fields([
+    { name: "images", maxCount: 5 },
+    { name: "video", maxCount: 1 }
+  ]),
   [
     body("title").notEmpty().withMessage("Title is required"),
     body("description")
@@ -64,7 +67,10 @@ router.get("/:id", getPostById);
 router.put(
   "/:id",
   protect,
-  upload.array("images", 5),
+  upload.fields([
+    { name: "images", maxCount: 5 },
+    { name: "video", maxCount: 1 }
+  ]),
   updatePost
 );
 
