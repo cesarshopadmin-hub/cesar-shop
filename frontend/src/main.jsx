@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import "./i18n";
 import "./index.css";
 import "react-toastify/dist/ReactToastify.css";
@@ -9,7 +10,9 @@ import { AppProvider } from "./context/AppContext.jsx";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AppProvider>
-      <App />
+      <HelmetProvider>
+        <App />
+      </HelmetProvider>
     </AppProvider>
   </StrictMode>,
 );
