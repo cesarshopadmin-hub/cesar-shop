@@ -2,22 +2,13 @@ import asyncHandler from "express-async-handler";
 import Post from "../models/Post.js";
 
 const createPost = asyncHandler(async (req, res) => {
-  const { title, description, category, price } = req.body;
+  const { title, description, category, price, videoUrl } = req.body;
   
   let imageUrls = [];
-  let videoUrl = "";
 
   if (req.files) {
     if (req.files.images) {
       imageUrls = req.files.images.map((file) => file.path);
-    }
-    if (req.files.video && req.files.video.length > 0) {
-      const videoFile = req.files.video[0];
-      if (videoFile.size > 20 * 1024 * 1024) {
-        res.status(400);
-        throw new Error("حجم ملف الفيديو يتجاوز الحد الأقصى المسموح به وهو 20 ميجابايت");
-      }
-      videoUrl = videoFile.path;
     }
   }
 
@@ -28,7 +19,7 @@ const createPost = asyncHandler(async (req, res) => {
     category,
     price,
     images: imageUrls,
-    videoUrl,
+    videoUrl: videoUrl || "",
   });
 
   res.status(201).json(post);
@@ -93,7 +84,7 @@ const getPostById = asyncHandler(async (req, res) => {
 });
 
 const updatePost = asyncHandler(async (req, res) => {
-  const { title, description, category, price } = req.body;
+  const { title, description, category, price, videoUrl } = req.body;
   const post = await Post.findById(req.params.id);
 
   if (!post) {
@@ -111,18 +102,14 @@ const updatePost = asyncHandler(async (req, res) => {
   post.category = category || post.category;
   post.price = price || post.price;
 
+  if (videoUrl !== undefined) {
+    post.videoUrl = videoUrl;
+  }
+
   if (req.files) {
     if (req.files.images && req.files.images.length > 0) {
       const imageUrls = req.files.images.map((file) => file.path);
       post.images = imageUrls;
-    }
-    if (req.files.video && req.files.video.length > 0) {
-      const videoFile = req.files.video[0];
-      if (videoFile.size > 20 * 1024 * 1024) {
-        res.status(400);
-        throw new Error("حجم ملف الفيديو يتجاوز الحد الأقصى المسموح به وهو 20 ميجابايت");
-      }
-      post.videoUrl = videoFile.path;
     }
   }
 

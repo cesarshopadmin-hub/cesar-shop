@@ -31,8 +31,7 @@ router.post(
   "/",
   protect,
   upload.fields([
-    { name: "images", maxCount: 5 },
-    { name: "video", maxCount: 1 }
+    { name: "images", maxCount: 5 }
   ]),
   [
     body("title").notEmpty().withMessage("Title is required"),
@@ -68,8 +67,7 @@ router.put(
   "/:id",
   protect,
   upload.fields([
-    { name: "images", maxCount: 5 },
-    { name: "video", maxCount: 1 }
+    { name: "images", maxCount: 5 }
   ]),
   updatePost
 );
