@@ -3,6 +3,7 @@ import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut, Shield } f
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import CesarLogo from "../CesarLogo";
+import FloatingWarning from "../ui/FloatingWarning";
 // import ParticleBackground from "./ParticleBackground";
 
 function MainLayout() {
@@ -137,6 +138,7 @@ function MainLayout() {
         </div>
       </nav>
 
+      <FloatingWarning />
     </div>
     </div>
   );

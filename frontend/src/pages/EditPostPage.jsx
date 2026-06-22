@@ -10,6 +10,7 @@ import {
   Loader2,
   Tags,
   X,
+  Video,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
@@ -19,6 +20,7 @@ const initialForm = {
   category: "",
   price: "",
   description: "",
+  videoUrl: "",
 };
 
 function EditPostPage() {
@@ -58,6 +60,7 @@ function EditPostPage() {
           category: data.category || "",
           price: data.price || "",
           description: data.description || "",
+          videoUrl: data.videoUrl || "",
         });
         if (data.images) {
           setSelectedImages(data.images);
@@ -145,8 +148,22 @@ function EditPostPage() {
       errors.images = "يجب اختيار صورة واحدة على الأقل";
     }
 
+    if (formData.videoUrl && formData.videoUrl.trim() !== "") {
+      const urlRegex = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/;
+      if (!urlRegex.test(formData.videoUrl.trim())) {
+        errors.videoUrl = "الرجاء إدخال رابط فيديو صحيح";
+      }
+    }
+
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      setLoading(false);
+      return;
+    }
+
+    const videoUrl = formData.videoUrl ? formData.videoUrl.trim() : "";
+    if (videoUrl && !videoUrl.includes('youtube.com') && !videoUrl.includes('youtu.be')) {
+      toast.error("عفواً، ندعم روابط يوتيوب فقط");
       setLoading(false);
       return;
     }
@@ -158,6 +175,7 @@ function EditPostPage() {
     payload.append("category", formData.category);
     payload.append("price", formData.price);
     payload.append("description", formData.description.trim());
+    payload.append("videoUrl", (formData.videoUrl || "").trim());
     selectedImages.forEach((file) => {
       if (file instanceof File) {
         payload.append("images", file);
@@ -282,10 +300,9 @@ function EditPostPage() {
                   <option value="" disabled>
                     اختر الفئة
                   </option>
-                  <option value="ألعاب (PUBG, FreeFire...)">
-                    ألعاب (PUBG, FreeFire...)
+                  <option value="ألعاب">
+                    ألعاب
                   </option>
-                  <option value="حسابات تيك توك">حسابات تيك توك</option>
                   <option value="حسابات سوشيال ميديا">
                     حسابات سوشيال ميديا
                   </option>
@@ -413,6 +430,33 @@ function EditPostPage() {
                   );
                 })}
               </div>
+            )}
+          </div>
+
+          {/* Video URL input section */}
+          <div className="space-y-2">
+            <label className="mr-1 text-sm font-medium text-slate-300">
+              رابط الفيديو (اختياري)
+            </label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500">
+                <Video className="h-5 w-5" />
+              </div>
+              <input
+                type="text"
+                name="videoUrl"
+                value={formData.videoUrl}
+                onChange={handleChange}
+                placeholder="أضف رابط يوتيوب أو تيك توك"
+                className={`w-full rounded-xl border bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition ${
+                  fieldErrors.videoUrl
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                }`}
+              />
+            </div>
+            {fieldErrors.videoUrl && (
+              <p className="mt-1 mr-1 text-xs text-red-500">{fieldErrors.videoUrl}</p>
             )}
           </div>
 

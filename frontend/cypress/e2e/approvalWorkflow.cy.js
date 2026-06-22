@@ -36,7 +36,7 @@ const USER_PASSWORD  = "123456";
  */
 function loginAs(email, password) {
   cy.visit("/login");
-  cy.get('input[name="email"]').should("be.visible").type(email);
+  cy.get('input[name="identifier"]').should("be.visible").type(email);
   cy.get('input[name="password"]').should("be.visible").type(password);
   cy.contains("button", "دخول").click();
 

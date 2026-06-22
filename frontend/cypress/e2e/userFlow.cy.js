@@ -34,14 +34,14 @@ describe("User Authentication and Post Creation Flow", () => {
     });
 
     it("renders the login form with email and password fields", () => {
-      cy.get('input[name="email"]').should("be.visible");
+      cy.get('input[name="identifier"]').should("be.visible");
       cy.get('input[name="password"]').should("be.visible");
       cy.contains("button", "دخول").should("be.visible");
     });
 
     it("submits credentials and redirects to the home page on success", () => {
       // Fill the form using the real name attributes from LoginPage.jsx
-      cy.get('input[name="email"]')
+      cy.get('input[name="identifier"]')
         .should("be.visible")
         .type(TEST_EMAIL);
 
@@ -59,12 +59,19 @@ describe("User Authentication and Post Creation Flow", () => {
     });
 
     it("shows a validation error when the email format is invalid", () => {
-      cy.get('input[name="email"]').type("not-an-email");
+      cy.intercept("POST", "/api/auth/login", {
+        statusCode: 401,
+        body: { message: "البريد الإلكتروني/رقم الهاتف أو كلمة المرور غير صحيحة" },
+      }).as("loginErrorRequest");
+
+      cy.get('input[name="identifier"]').type("not-an-email");
       cy.get('input[name="password"]').type(TEST_PASSWORD);
       cy.contains("button", "دخول").click();
 
-      // The inline field-level error rendered by LoginPage.jsx
-      cy.contains("صيغة البريد غير صحيحة").should("be.visible");
+      cy.wait("@loginErrorRequest");
+
+      // The error banner rendered on submit failure
+      cy.contains("البريد الإلكتروني/رقم الهاتف أو كلمة المرور غير صحيحة").should("be.visible");
     });
   });
 

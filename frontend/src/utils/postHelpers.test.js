@@ -88,7 +88,7 @@ describe("matchesCategory", () => {
     });
 
     it('returns false when postCategory does not start with "ألعاب"', () => {
-      expect(matchesCategory("حسابات تيك توك", "ألعاب")).toBe(false);
+      expect(matchesCategory("حسابات سوشيال ميديا", "ألعاب")).toBe(false);
     });
 
     it("returns false for an empty postCategory", () => {
@@ -103,19 +103,19 @@ describe("matchesCategory", () => {
   // ── Exact match cases ───────────────────────
   describe("exact category matching (non-'all', non-'ألعاب')", () => {
     it("returns true for an exact match", () => {
-      expect(matchesCategory("حسابات تيك توك", "حسابات تيك توك")).toBe(true);
+      expect(matchesCategory("حسابات سوشيال ميديا", "حسابات سوشيال ميديا")).toBe(true);
     });
 
     it("returns true for a match that differs only in surrounding spaces", () => {
-      expect(matchesCategory("  حسابات تيك توك  ", "حسابات تيك توك")).toBe(true);
+      expect(matchesCategory("  حسابات سوشيال ميديا  ", "حسابات سوشيال ميديا")).toBe(true);
     });
 
     it("returns false when the postCategory is a different category", () => {
-      expect(matchesCategory("حسابات سوشيال ميديا", "حسابات تيك توك")).toBe(false);
+      expect(matchesCategory("ألعاب", "حسابات سوشيال ميديا")).toBe(false);
     });
 
     it("returns false for a partial match that is not a prefix match", () => {
-      expect(matchesCategory("حسابات", "حسابات تيك توك")).toBe(false);
+      expect(matchesCategory("حسابات", "حسابات سوشيال ميديا")).toBe(false);
     });
 
     it('returns true for the "أخرى" category when it matches exactly', () => {
@@ -127,7 +127,7 @@ describe("matchesCategory", () => {
     });
 
     it("returns false for an empty postCategory against a real category", () => {
-      expect(matchesCategory("", "حسابات تيك توك")).toBe(false);
+      expect(matchesCategory("", "حسابات سوشيال ميديا")).toBe(false);
     });
 
     it("returns false for a null postCategory against a real category", () => {

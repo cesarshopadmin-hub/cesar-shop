@@ -25,6 +25,15 @@ const PostDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const regExp = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(regExp);
+    return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+  };
+
+  const embedUrl = getYouTubeEmbedUrl(post?.videoUrl);
 
   const handlePrev = () => {
     if (post && post.images && post.images.length > 0) {
@@ -184,6 +193,22 @@ const PostDetailsPage = () => {
               </p>
             </div>
 
+            {embedUrl && (
+              <div className="mb-8 p-6 rounded-xl border border-cesar-cyan/20 bg-black/20 text-right">
+                <h3 className="text-lg font-bold text-white mb-3">الفيديو التوضيحي</h3>
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 bg-black shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                  <iframe
+                    src={embedUrl}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    className="absolute top-0 left-0 w-full h-full"
+                  ></iframe>
+                </div>
+              </div>
+            )}
+
             {/* ── Seller information ── */}
             {post.user && (
               <div className="bg-black/40 border border-gray-800 rounded-2xl p-6 mt-auto shadow-lg backdrop-blur-sm">
@@ -230,8 +255,8 @@ const PostDetailsPage = () => {
                   )}
                 </div>
 
-                {/* Admin-only: WhatsApp CTA */}
-                {isAdmin && post.user.phoneNumber && (
+                {/* WhatsApp CTA */}
+                {post.user.phoneNumber && (
                   <a
                     href={`https://wa.me/20${post.user.phoneNumber.replace(
                       /^0/,

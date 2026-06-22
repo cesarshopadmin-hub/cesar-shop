@@ -17,12 +17,12 @@ export const AuthProvider = ({ children }) => {
     return localStorage.getItem('token') || null;
   });
 
-  const login = async (email, password) => {
-    const response = await api.post('/auth/login', { email, password });
+  const login = async (identifier, password) => {
+    const response = await api.post('/auth/login', { identifier, password });
     const data = response.data; 
-    
+
     const { token: newToken, ...userData } = data; 
-    
+
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);

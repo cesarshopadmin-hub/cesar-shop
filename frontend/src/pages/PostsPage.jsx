@@ -10,7 +10,6 @@ import useDocumentTitle from "../hooks/useDocumentTitle.js";
 const categoryOptions = [
   { value: "all", label: "الكل" },
   { value: "ألعاب", label: "ألعاب" },
-  { value: "حسابات تيك توك", label: "حسابات تيك توك" },
   { value: "حسابات سوشيال ميديا", label: "حسابات سوشيال ميديا" },
   { value: "أخرى", label: "أخرى" },
 ];

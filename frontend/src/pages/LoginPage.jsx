@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 
 function LoginPage() {
   const { i18n } = useTranslation();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -17,7 +17,7 @@ function LoginPage() {
   const { login, token } = useAuth();
   const navigate = useNavigate();
 
-  // Route Guard: Lw mt5zl token yrga3 l home 3latool
+  // Route Guard: Go home if already logged in
   useEffect(() => {
     if (token) {
       navigate("/");
@@ -26,9 +26,8 @@ function LoginPage() {
 
   const validateField = (name, value) => {
     let errMsg = "";
-    if (name === "email") {
-      if (!value) errMsg = "البريد الإلكتروني مطلوب";
-      else if (!/\S+@\S+\.\S+/.test(value)) errMsg = "صيغة البريد غير صحيحة";
+    if (name === "identifier") {
+      if (!value) errMsg = "البريد الإلكتروني أو رقم الهاتف مطلوب";
     }
     if (name === "password" && !value) {
       errMsg = "كلمة المرور مطلوبة";
@@ -43,18 +42,17 @@ function LoginPage() {
     setLoading(true);
     setError("");
 
-    // Check lw feh errors f el UI asln
-    if (fieldErrors.email || fieldErrors.password || !email || !password) {
+    if (fieldErrors.identifier || fieldErrors.password || !identifier || !password) {
       setLoading(false);
       return;
     }
 
     try {
-      await login(email, password);
+      await login(identifier, password);
       navigate("/");
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      setError(err.response?.data?.message || "البريد الإلكتروني/رقم الهاتف أو كلمة المرور غير صحيحة");
     } finally {
       setLoading(false);
     }
@@ -82,20 +80,20 @@ function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300 ml-1">البريد الإلكتروني</label>
+              <label className="text-sm font-medium text-slate-300 ml-1">البريد الإلكتروني أو رقم الهاتف</label>
               <div className="relative">
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">
                   <Mail className="h-5 w-5" />
                 </div>
                 <input
-                  type="email" name="email" required value={email} 
-                  onChange={(e) => { setEmail(e.target.value); validateField(e.target.name, e.target.value); }}
+                  type="text" name="identifier" required value={identifier} 
+                  onChange={(e) => { setIdentifier(e.target.value); validateField(e.target.name, e.target.value); }}
                   onBlur={handleBlur}
-                  className={`w-full bg-black/40 border ${fieldErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan'} text-white rounded-xl pr-10 pl-4 py-3 focus:ring-1 transition outline-none`}
-                  placeholder="name@example.com"
+                  className={`w-full bg-black/40 border ${fieldErrors.identifier ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan'} text-white rounded-xl pr-10 pl-4 py-3 focus:ring-1 transition outline-none`}
+                  placeholder="البريد الإلكتروني أو رقم الهاتف"
                 />
               </div>
-              {fieldErrors.email && <p className="text-red-400 text-xs mt-1 pr-2">{fieldErrors.email}</p>}
+              {fieldErrors.identifier && <p className="text-red-400 text-xs mt-1 pr-2">{fieldErrors.identifier}</p>}
             </div>
 
             <div className="space-y-1.5">
