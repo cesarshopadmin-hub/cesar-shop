@@ -322,7 +322,7 @@ const swaggerOptions = {
                     adminContactNumbers: {
                       type: "array",
                       items: { type: "string" },
-                      example: ["01002051747", "https://wa.me/201012345678"],
+                      example: ["01003481108", "https://wa.me/201003481108"],
                     },
                     alertMessage: {
                       type: "string",
