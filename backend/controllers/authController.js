@@ -7,11 +7,16 @@ const asyncHandler = (fn) => (req, res, next) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, identifier, password, confirmPassword } = req.body;
+  const { name, identifier, password, confirmPassword, phoneNumber } = req.body;
 
   if (!name || !identifier || !password || !confirmPassword) {
     res.status(400);
     throw new Error("يرجى ملء جميع الحقول المطلوبة");
+  }
+
+  if (!phoneNumber || !phoneNumber.trim()) {
+    res.status(400);
+    throw new Error("رقم الهاتف مطلوب للتسجيل");
   }
 
   if (password !== confirmPassword) {
@@ -26,11 +31,13 @@ const registerUser = asyncHandler(async (req, res) => {
     ? lowercaseIdentifier
     : trimmedIdentifier.replace(/[\s\-\(\)]/g, "");
 
+  const normalizedPhone = phoneNumber.trim().replace(/[\s\-\(\)]/g, "");
+
   const existingUser = await User.findOne({
     $or: [
       { identifier: normalizedIdentifier },
       { email: isEmail ? normalizedIdentifier : "undefined_dummy_email" },
-      { phoneNumber: !isEmail ? normalizedIdentifier : "undefined_dummy_phone" }
+      { phoneNumber: normalizedPhone }
     ]
   });
 
@@ -43,12 +50,11 @@ const registerUser = asyncHandler(async (req, res) => {
     name,
     identifier: normalizedIdentifier,
     password,
+    phoneNumber: normalizedPhone,
   };
 
   if (isEmail) {
     userData.email = normalizedIdentifier;
-  } else {
-    userData.phoneNumber = normalizedIdentifier;
   }
 
   const user = await User.create(userData);
