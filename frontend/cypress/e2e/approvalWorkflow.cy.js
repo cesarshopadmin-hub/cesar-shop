@@ -116,7 +116,7 @@ describe("Full Post Approval Lifecycle", () => {
     loginAs(ADMIN_EMAIL, ADMIN_PASSWORD);
 
     cy.visit("/admin/dashboard");
-    cy.contains("مراجعة المنشورات المعلقة", { timeout: 10000 }).should("be.visible");
+    cy.contains("بوابة الإدارة والرقابة", { timeout: 10000 }).should("be.visible");
 
     // Locate the specific post card by its unique title
     cy.contains(uniqueTitle, { timeout: 10000 })
@@ -198,7 +198,7 @@ describe("Full Post Approval Lifecycle", () => {
     loginAs(ADMIN_EMAIL, ADMIN_PASSWORD);
 
     cy.visit("/admin/dashboard");
-    cy.contains("مراجعة المنشورات المعلقة", { timeout: 10000 }).should("be.visible");
+    cy.contains("بوابة الإدارة والرقابة", { timeout: 10000 }).should("be.visible");
 
     // Find the re-submitted post and approve it
     cy.contains(uniqueTitle, { timeout: 10000 })

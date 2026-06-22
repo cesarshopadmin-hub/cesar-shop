@@ -10,10 +10,15 @@ import {
   MessageCircle,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  X,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api";
 import { useAuth } from "../context/AuthContext";
+import { motion } from "framer-motion";
 
 const PostDetailsPage = () => {
   const { t, i18n } = useTranslation();
@@ -25,6 +30,14 @@ const PostDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Admin Action States
+  const [actionLoading, setActionLoading] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  // Lightbox States
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   
   const getYouTubeEmbedUrl = (url) => {
     if (!url || typeof url !== 'string') return null;
@@ -48,6 +61,46 @@ const PostDetailsPage = () => {
       setCurrentImageIndex((prev) =>
         prev === post.images.length - 1 ? 0 : prev + 1
       );
+    }
+  };
+
+  const handleApprove = async () => {
+    try {
+      setActionLoading(true);
+      await api.put(`/posts/${post._id}/status`, { status: "approved" });
+      toast.success("تمت الموافقة على المنشور بنجاح.");
+      navigate("/admin/dashboard");
+    } catch (requestError) {
+      toast.error(
+        requestError.response?.data?.message || "تعذر الموافقة على المنشور. حاول مرة أخرى."
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!rejectionReason.trim()) {
+      toast.error("يرجى إدخال سبب الرفض");
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      await api.put(`/posts/${post._id}/status`, {
+        status: "rejected",
+        rejectionReason: rejectionReason.trim(),
+      });
+      toast.success("تم رفض المنشور بنجاح.");
+      setIsRejectModalOpen(false);
+      navigate("/admin/dashboard");
+    } catch (requestError) {
+      toast.error(
+        requestError.response?.data?.message || "تعذر رفض المنشور. حاول مرة أخرى."
+      );
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -109,6 +162,49 @@ const PostDetailsPage = () => {
           <span>العودة للسوق</span>
         </button>
 
+        {isAdmin && post.status === "pending" && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-2xl border border-cesar-cyan/30 bg-cesar-dark/80 p-6 shadow-[0_0_20px_rgba(0,209,255,0.1)] backdrop-blur-md text-right flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          >
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-cesar-cyan to-transparent" />
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-cesar-cyan animate-pulse" />
+                خيارات مراجعة المنشور
+              </h2>
+              <p className="text-sm text-cesar-gray mt-1">
+                هذا المنشور معلق وبانتظار المراجعة. يمكنك الموافقة عليه ليتم عرضه للعامة، أو رفضه مع تحديد السبب.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={actionLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/50 px-5 py-3 text-sm font-bold text-emerald-300 hover:bg-emerald-500/20 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] transition duration-300 disabled:opacity-50"
+              >
+                {actionLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                موافقة
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsRejectModalOpen(true)}
+                disabled={actionLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500/10 border border-rose-500/50 px-5 py-3 text-sm font-bold text-rose-300 hover:bg-rose-500/20 hover:shadow-[0_0_15px_rgba(244,63,94,0.2)] transition duration-300 disabled:opacity-50"
+              >
+                <XCircle className="h-4 w-4" />
+                رفض
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* ── Image gallery ── */}
           <div className="flex flex-col">
@@ -120,7 +216,8 @@ const PostDetailsPage = () => {
                     : "https://via.placeholder.com/600x400?text=No+Image"
                 }
                 alt={post.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-zoom-in"
+                onClick={() => setIsLightboxOpen(true)}
               />
 
               {post.images && post.images.length > 1 && (
@@ -273,6 +370,119 @@ const PostDetailsPage = () => {
               </div>
             )}
           </div>
+
+          {/* Rejection Modal */}
+          {isRejectModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/5 bg-cesar-dark p-6 text-right shadow-2xl"
+              >
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent"></div>
+                
+                <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-5">
+                  <button
+                    type="button"
+                    onClick={() => setIsRejectModalOpen(false)}
+                    className="text-slate-400 hover:text-white transition"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                  <h3 className="text-lg font-bold text-white">رفض المنشور</h3>
+                </div>
+
+                <form onSubmit={handleRejectSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-300 mr-1">سبب الرفض</label>
+                    <textarea
+                      required
+                      rows="3"
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="اكتب سببًا واضحًا ومختصرًا لرفض المنشور..."
+                      className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-rose-500 focus:shadow-[0_0_10px_rgba(244,63,94,0.3)] transition resize-none"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsRejectModalOpen(false)}
+                      className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={actionLoading || !rejectionReason.trim()}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-rose-500/10 border border-rose-500/50 hover:bg-rose-500/20 text-rose-300 rounded-xl font-bold text-sm transition-all disabled:opacity-50"
+                    >
+                      {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      تأكيد الرفض
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+
+          {/* Fullscreen Lightbox Modal */}
+          {isLightboxOpen && (
+            <div
+              onClick={() => setIsLightboxOpen(false)}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md animate-fadeIn p-4 md:p-8"
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(false)}
+                className="absolute top-6 right-6 flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-black/50 text-white hover:bg-white hover:text-black hover:scale-105 transition-all duration-300 z-50 focus:outline-none"
+              >
+                <X className="h-6 w-6" />
+              </button>
+
+              {/* Navigation Arrows */}
+              {post.images && post.images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrev();
+                    }}
+                    className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-black/60 text-white hover:bg-cesar-cyan hover:text-black hover:border-cesar-cyan hover:shadow-neon-cyan transition duration-300 backdrop-blur-sm focus:outline-none z-50"
+                  >
+                    <ChevronRight className="w-8 h-8" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNext();
+                    }}
+                    className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-black/60 text-white hover:bg-cesar-cyan hover:text-black hover:border-cesar-cyan hover:shadow-neon-cyan transition duration-300 backdrop-blur-sm focus:outline-none z-50"
+                  >
+                    <ChevronLeft className="w-8 h-8" />
+                  </button>
+                </>
+              )}
+
+              {/* Active Image */}
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative max-w-full max-h-full select-none"
+              >
+                <img
+                  src={post.images[currentImageIndex]}
+                  alt={`${post.title}-lightbox`}
+                  className="max-w-[90vw] max-h-[85vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/5"
+                />
+              </motion.div>
+            </div>
+          )}
         </div>
       </div>
     </div>
