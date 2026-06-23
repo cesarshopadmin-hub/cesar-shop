@@ -70,6 +70,9 @@ function LoginPage() {
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">تسجيل الدخول</h2>
             <p className="text-sm text-cesar-gray">أهلاً بك مجدداً في متجر سيزار</p>
+            <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs text-center leading-relaxed">
+              ⚠️ <strong>تنبيه هام:</strong> يرجى الاحتفاظ بكلمة المرور الخاصة بك بعناية. بدونها لن تتمكن من الوصول إلى حسابك أو العثور على إعلاناتك وإدارتها لاحقاً.
+            </div>
           </div>
 
           {error && (
