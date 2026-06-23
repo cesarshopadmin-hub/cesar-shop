@@ -43,7 +43,22 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (existingUser) {
     res.status(400);
-    throw new Error("المستخدم مسجل بالفعل في النظام");
+    const isEmailConflict = isEmail && (
+      (existingUser.email && existingUser.email.toLowerCase() === normalizedIdentifier.toLowerCase()) || 
+      (existingUser.identifier && existingUser.identifier.toLowerCase() === normalizedIdentifier.toLowerCase())
+    );
+    const isPhoneConflict = existingUser.phoneNumber === normalizedPhone || existingUser.identifier === normalizedPhone;
+
+    if (isEmailConflict && isPhoneConflict) {
+      throw new Error("البريد الإلكتروني ورقم الهاتف مسجلان بالفعل في النظام. يرجى تسجيل الدخول.");
+    }
+    if (isEmailConflict) {
+      throw new Error("البريد الإلكتروني هذا مسجل بالفعل في النظام. يرجى استخدام بريد آخر أو تسجيل الدخول.");
+    }
+    if (isPhoneConflict) {
+      throw new Error("رقم الهاتف هذا مسجل بالفعل في النظام. يرجى استخدام رقم آخر أو تسجيل الدخول.");
+    }
+    throw new Error("البريد الإلكتروني أو رقم الهاتف مسجل بالفعل في النظام.");
   }
 
   const userData = {
