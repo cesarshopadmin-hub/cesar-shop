@@ -22,6 +22,16 @@ const postSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, "Category is required"],
+      enum: {
+        values: [
+          "فري فاير",
+          "ببجي",
+          "بيس فيفا و كلاش",
+          "حسابات سوشيال ميديا",
+          "اخري",
+        ],
+        message: "{VALUE} is not a valid category",
+      },
       trim: true,
     },
     price: {

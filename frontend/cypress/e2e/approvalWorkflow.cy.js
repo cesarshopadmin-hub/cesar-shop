@@ -78,7 +78,7 @@ describe("Full Post Approval Lifecycle", () => {
 
     // Fill the form
     cy.get('input[name="title"]').type(uniqueTitle);
-    cy.get('select[name="category"]').select("أخرى");
+    cy.get('select[name="category"]').select("اخري");
     cy.get('input[name="price"]').type("200");
     cy.get('textarea[name="description"]').type(
       "هذا إعلان تجريبي لاختبار دورة حياة الموافقة الكاملة على المنصة"

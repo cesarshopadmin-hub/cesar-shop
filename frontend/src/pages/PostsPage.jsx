@@ -9,9 +9,11 @@ import useDocumentTitle from "../hooks/useDocumentTitle.js";
 
 const categoryOptions = [
   { value: "all", label: "الكل" },
-  { value: "ألعاب", label: "ألعاب" },
+  { value: "فري فاير", label: "فري فاير" },
+  { value: "ببجي", label: "ببجي" },
+  { value: "بيس فيفا و كلاش", label: "بيس فيفا و كلاش" },
   { value: "حسابات سوشيال ميديا", label: "حسابات سوشيال ميديا" },
-  { value: "أخرى", label: "أخرى" },
+  { value: "اخري", label: "اخري" },
 ];
 
 

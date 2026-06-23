@@ -30,11 +30,5 @@ export function matchesCategory(postCategory, selectedCategory) {
     return true;
   }
 
-  const normalizedPostCategory = normalizeText(postCategory);
-
-  if (selectedCategory === "ألعاب") {
-    return normalizedPostCategory.startsWith("ألعاب");
-  }
-
-  return normalizedPostCategory === normalizeText(selectedCategory);
+  return normalizeText(postCategory) === normalizeText(selectedCategory);
 }

@@ -268,13 +268,19 @@ function AddPostPage() {
                   <option value="" disabled>
                     اختر الفئة
                   </option>
-                  <option value="ألعاب">
-                    ألعاب
+                  <option value="فري فاير">
+                    فري فاير
+                  </option>
+                  <option value="ببجي">
+                    ببجي
+                  </option>
+                  <option value="بيس فيفا و كلاش">
+                    بيس فيفا و كلاش
                   </option>
                   <option value="حسابات سوشيال ميديا">
                     حسابات سوشيال ميديا
                   </option>
-                  <option value="أخرى">أخرى</option>
+                  <option value="اخري">اخري</option>
                 </select>
               </div>
               {fieldErrors.category && (

@@ -116,7 +116,7 @@ describe("User Authentication and Post Creation Flow", () => {
       // ── Category (select) ─────────────────────────────────────────────────
       cy.get('select[name="category"]')
         .should("be.visible")
-        .select("أخرى"); // a real <option> value in AddPostPage.jsx
+        .select("اخري"); // a real <option> value in AddPostPage.jsx
 
       // ── Price ─────────────────────────────────────────────────────────────
       cy.get('input[name="price"]')

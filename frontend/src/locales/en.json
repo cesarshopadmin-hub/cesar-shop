@@ -31,9 +31,11 @@
     "errorLoad": "Failed to load store settings. Please try again shortly."
   },
   "enums": {
-    "ألعاب": "Games",
+    "فري فاير": "Free Fire",
+    "ببجي": "PUBG",
+    "بيس فيفا و كلاش": "PES, FIFA & Clash",
     "حسابات سوشيال ميديا": "Social Media Accounts",
-    "أخرى": "Others",
+    "اخري": "Other",
     "pending": "Pending",
     "approved": "Approved",
     "rejected": "Rejected",

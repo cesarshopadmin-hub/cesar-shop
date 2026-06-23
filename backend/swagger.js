@@ -143,7 +143,7 @@ const swaggerOptions = {
                     title: { type: "string", example: "حساب ببجي ليفل 80" },
                     description: { type: "string", example: "حساب قديم ومشحون سيزونات قديمة جداً." },
                     price: { type: "number", example: 2500 },
-                    category: { type: "string", example: "PUBG" },
+                    category: { type: "string", example: "ببجي" },
                     images: {
                       type: "array",
                       items: { type: "string", format: "binary" },

@@ -39,7 +39,17 @@ router.post(
       .isLength({ min: 10 })
       .withMessage("Description must be at least 10 characters long"),
     body("price").isNumeric().withMessage("Price must be numeric"),
-    body("category").notEmpty().withMessage("Category is required"),
+    body("category")
+      .notEmpty()
+      .withMessage("Category is required")
+      .isIn([
+        "فري فاير",
+        "ببجي",
+        "بيس فيفا و كلاش",
+        "حسابات سوشيال ميديا",
+        "اخري",
+      ])
+      .withMessage("Invalid category"),
   ],
   handleValidationErrors,
   createPost,
