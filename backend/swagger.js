@@ -140,7 +140,8 @@ const swaggerOptions = {
                 schema: {
                   type: "object",
                   properties: {
-                    title: { type: "string", example: "حساب ببجي ليفل 80" },
+                    whatsappNumber: { type: "string", example: "1003481108" },
+                    countryCode: { type: "string", example: "20" },
                     description: { type: "string", example: "حساب قديم ومشحون سيزونات قديمة جداً." },
                     price: { type: "number", example: 2500 },
                     category: { type: "string", example: "ببجي" },
@@ -150,7 +151,7 @@ const swaggerOptions = {
                       description: "يمكن رفع حتى 5 صور كحد أقصى للإعلان الواحد",
                     },
                   },
-                  required: ["title", "description", "price", "category"],
+                  required: ["whatsappNumber", "countryCode", "description", "price", "category"],
                 },
               },
             },

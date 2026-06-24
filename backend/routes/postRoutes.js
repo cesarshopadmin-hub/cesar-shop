@@ -28,30 +28,43 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
+const postValidationRules = [
+  body("whatsappNumber")
+    .notEmpty()
+    .withMessage("WhatsApp number is required")
+    .isNumeric()
+    .withMessage("WhatsApp number must contain only numbers")
+    .isLength({ min: 4, max: 15 })
+    .withMessage("WhatsApp number must be between 4 and 15 digits"),
+  body("countryCode")
+    .notEmpty()
+    .withMessage("Country code is required")
+    .isNumeric()
+    .withMessage("Country code must contain only numbers"),
+  body("description")
+    .isLength({ min: 10 })
+    .withMessage("Description must be at least 10 characters long"),
+  body("price").isNumeric().withMessage("Price must be numeric"),
+  body("category")
+    .notEmpty()
+    .withMessage("Category is required")
+    .isIn([
+      "فري فاير",
+      "ببجي",
+      "بيس فيفا و كلاش",
+      "حسابات سوشيال ميديا",
+      "اخري",
+    ])
+    .withMessage("Invalid category"),
+];
+
 router.post(
   "/",
   protect,
   upload.fields([
     { name: "images", maxCount: 5 }
   ]),
-  [
-    body("title").notEmpty().withMessage("Title is required"),
-    body("description")
-      .isLength({ min: 10 })
-      .withMessage("Description must be at least 10 characters long"),
-    body("price").isNumeric().withMessage("Price must be numeric"),
-    body("category")
-      .notEmpty()
-      .withMessage("Category is required")
-      .isIn([
-        "فري فاير",
-        "ببجي",
-        "بيس فيفا و كلاش",
-        "حسابات سوشيال ميديا",
-        "اخري",
-      ])
-      .withMessage("Invalid category"),
-  ],
+  postValidationRules,
   handleValidationErrors,
   createPost,
 );
@@ -80,6 +93,8 @@ router.put(
   upload.fields([
     { name: "images", maxCount: 5 }
   ]),
+  postValidationRules,
+  handleValidationErrors,
   updatePost
 );
 router.delete("/:id", protect, deletePost);

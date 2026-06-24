@@ -19,7 +19,7 @@ const getPublicIdFromUrl = (url) => {
 };
 
 const createPost = asyncHandler(async (req, res) => {
-  const { title, description, category, price, videoUrl } = req.body;
+  const { whatsappNumber, countryCode, description, category, price } = req.body;
   
   let imageUrls = [];
 
@@ -33,12 +33,12 @@ const createPost = asyncHandler(async (req, res) => {
 
   const post = await Post.create({
     user: req.user._id,
-    title,
+    whatsappNumber,
+    countryCode,
     description,
     category,
     price,
     images: imageUrls,
-    videoUrl: videoUrl || "",
   });
 
   res.status(201).json(post);
@@ -103,7 +103,7 @@ const getPostById = asyncHandler(async (req, res) => {
 });
 
 const updatePost = asyncHandler(async (req, res) => {
-  const { title, description, category, price, videoUrl } = req.body;
+  const { whatsappNumber, countryCode, description, category, price } = req.body;
   const post = await Post.findById(req.params.id);
 
   if (!post) {
@@ -117,20 +117,17 @@ const updatePost = asyncHandler(async (req, res) => {
     throw new Error("غير مصرح لك بتعديل هذا الإعلان");
   }
 
-  // Strict status check: can only edit if pending
-  if (post.status !== "pending") {
+  // Strict status check: can only edit if pending or rejected
+  if (post.status !== "pending" && post.status !== "rejected") {
     res.status(400);
-    throw new Error("لا يمكن تعديل الإعلان بعد مراجعته");
+    throw new Error("لا يمكن تعديل الإعلان بعد قبوله");
   }
 
-  post.title = title || post.title;
+  post.whatsappNumber = whatsappNumber || post.whatsappNumber;
+  post.countryCode = countryCode || post.countryCode;
   post.description = description || post.description;
   post.category = category || post.category;
   post.price = price || post.price;
-
-  if (videoUrl !== undefined) {
-    post.videoUrl = videoUrl;
-  }
 
   if (req.files && req.files.images && req.files.images.length > 0) {
     const uploadPromises = req.files.images.map((file) =>

@@ -7,12 +7,6 @@ const postSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "User is required"],
     },
-    title: {
-      type: String,
-      required: [true, "Title is required"],
-      trim: true,
-      minlength: [3, "Title must be at least 3 characters long"],
-    },
     description: {
       type: String,
       required: [true, "Description is required"],
@@ -53,9 +47,15 @@ const postSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
-    videoUrl: {
+    whatsappNumber: {
       type: String,
-      default: "",
+      required: [true, "WhatsApp number is required"],
+      trim: true,
+    },
+    countryCode: {
+      type: String,
+      required: [true, "Country code is required"],
+      trim: true,
     },
   },
   {
