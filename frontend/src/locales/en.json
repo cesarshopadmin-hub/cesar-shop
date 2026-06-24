@@ -15,6 +15,7 @@
   },
   "home": {
     "heroTitle": "Cesar Store",
+    "howToUse": "How to use the store",
     "heroSubtitle": "A neon-themed gaming destination, fast, and optimized for showcasing links and connecting with the Cesar Store community.",
     "loadingPortal": "Loading Cesar Portal...",
     "retryBtn": "Retry",

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   FaWhatsapp,
   FaFacebookF,
@@ -8,7 +9,7 @@ import {
   FaTiktok,
   FaLink,
 } from "react-icons/fa";
-import { MonitorPlay, RefreshCw, Sparkles } from "lucide-react";
+import { MonitorPlay, RefreshCw, Sparkles, Play, X } from "lucide-react";
 import api from "../Services/api.js";
 import useDocumentTitle from "../hooks/useDocumentTitle.js";
 // import ParticleBackground from "../components/layout/ParticleBackground.jsx";
@@ -53,6 +54,7 @@ function HomePage() {
   const [socialLinks, setSocialLinks] = useState([]);
   const [alertMessage, setAlertMessage] = useState("");
   const [adminNumbers, setAdminNumbers] = useState([]);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -155,6 +157,22 @@ function HomePage() {
           <p className="max-w-2xl text-sm leading-7 text-cesar-gray sm:text-base">
             {t("home.heroSubtitle")}
           </p>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              to="/posts"
+              className="inline-flex items-center gap-2 rounded-full bg-cesar-cyan px-6 py-2.5 text-sm font-bold text-cesar-darker transition duration-300 hover:bg-white hover:shadow-neon-cyan shadow-[0_0_15px_rgba(0,240,255,0.4)]"
+            >
+              {t("nav.posts")}
+            </Link>
+            <button
+              onClick={() => setIsVideoModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-cesar-cyan/30 bg-cesar-cyan/10 px-6 py-2.5 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
+            >
+              <Play className="h-4 w-4 fill-current" />
+              {t("home.howToUse")}
+            </button>
+          </div>
         </motion.header>
 
         {loading ? (
@@ -357,6 +375,36 @@ function HomePage() {
           </motion.main>
         )}
       </div>
+
+      {/* Video Modal */}
+      {isVideoModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+          onClick={() => setIsVideoModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-4xl aspect-video rounded-xl overflow-hidden border border-cesar-cyan shadow-[0_0_30px_rgba(0,240,255,0.3)] bg-cesar-dark"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setIsVideoModalOpen(false)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 border border-white/10 text-white hover:text-cesar-cyan hover:border-cesar-cyan/50 hover:bg-black/85 transition duration-200"
+              aria-label="Close modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <iframe
+              className="w-full h-full"
+              src="https://www.youtube.com/embed/NnY4xALe6_I"
+              title="How to use the platform"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 }

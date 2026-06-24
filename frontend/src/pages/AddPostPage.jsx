@@ -421,7 +421,7 @@ function AddPostPage() {
                 name="videoUrl"
                 value={formData.videoUrl}
                 onChange={handleChange}
-                placeholder="أضف رابط يوتيوب أو تيك توك"
+                placeholder="أضف رابط يوتيوب "
                 className={`w-full rounded-xl border bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition ${
                   fieldErrors.videoUrl
                     ? "border-red-500 focus:ring-red-500"
