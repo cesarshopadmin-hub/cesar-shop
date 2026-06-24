@@ -1,9 +1,25 @@
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import { uploadToCloudinary } from "../middlewares/uploadMiddleware.js";
+import { v2 as cloudinary } from "cloudinary";
 
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+const getPublicIdFromUrl = (url) => {
+  try {
+    const parts = url.split("/upload/");
+    if (parts.length < 2) return null;
+    const pathParts = parts[1].split("/");
+    if (pathParts[0].startsWith("v") && /^\d+$/.test(pathParts[0].substring(1))) {
+      pathParts.shift();
+    }
+    const filename = pathParts.join("/");
+    return filename.split(".")[0];
+  } catch {
+    return null;
+  }
 };
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -175,7 +191,33 @@ const updateProfilePicture = asyncHandler(async (req, res) => {
   }
 
   if (req.file) {
-    const result = await uploadToCloudinary(req.file.buffer, "profile_pictures");
+    // Safe Deletion: Before attempting to delete the old image from Cloudinary, explicitly check if the URL exists and is valid
+    if (user.profilePictureUrl && user.profilePictureUrl.includes("cloudinary")) {
+      try {
+        const publicId = getPublicIdFromUrl(user.profilePictureUrl);
+        if (publicId) {
+          await cloudinary.uploader.destroy(publicId);
+        }
+      } catch (err) {
+        console.error("Cloudinary old profile picture deletion failed:", err);
+      }
+    }
+
+    // Direct Upload using cloudinary.uploader.upload_stream
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: "profile_pictures" },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      );
+      uploadStream.end(req.file.buffer);
+    });
+
     user.profilePictureUrl = result.secure_url;
   }
 
