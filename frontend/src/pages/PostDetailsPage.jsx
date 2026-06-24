@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowRight,
   Tag,
@@ -14,6 +14,7 @@ import {
   XCircle,
   Loader2,
   X,
+  Trash2,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api";
@@ -35,6 +36,26 @@ const PostDetailsPage = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+
+  const currentUser = user?.name ? user : user?.user;
+  const isOwner = currentUser && post && post.user && (post.user._id === currentUser._id || post.user === currentUser._id || post.user.toString() === currentUser._id.toString());
+
+  const handleDeletePost = async () => {
+    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإعلان؟");
+    if (!confirmDelete) return;
+
+    try {
+      setActionLoading(true);
+      await api.delete(`/posts/${post._id}`);
+      toast.success("تم حذف الإعلان بنجاح");
+      navigate("/profile");
+    } catch (err) {
+      console.error("Error deleting post:", err);
+      toast.error(err.response?.data?.message || "حدث خطأ أثناء حذف الإعلان.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Lightbox States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -302,6 +323,33 @@ const PostDetailsPage = () => {
                     allowFullScreen
                     className="absolute top-0 left-0 w-full h-full"
                   ></iframe>
+                </div>
+              </div>
+            )}
+
+            {/* ── Owner Actions ── */}
+            {isOwner && (
+              <div className="bg-black/40 border border-red-500/20 rounded-2xl p-6 mb-6 shadow-lg backdrop-blur-sm text-right">
+                <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-3 mb-5">
+                  إدارة الإعلان الخاص بك
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {post.status === "pending" && (
+                    <Link
+                      to={`/edit-post/${post._id}`}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 border border-cesar-cyan/40 bg-cesar-cyan/10 text-cesar-cyan hover:bg-cesar-cyan/20 hover:shadow-neon-cyan rounded-xl font-bold text-sm transition-all duration-300 text-center"
+                    >
+                      تعديل الإعلان
+                    </Link>
+                  )}
+                  <button
+                    onClick={handleDeletePost}
+                    disabled={actionLoading}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-500/10 border border-red-500/50 hover:bg-red-500/20 text-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] rounded-xl font-bold text-sm transition-all duration-300 disabled:opacity-50"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    حذف الإعلان
+                  </button>
                 </div>
               </div>
             )}

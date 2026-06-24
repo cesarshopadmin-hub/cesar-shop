@@ -14,7 +14,9 @@ import {
   Edit2,
   Save,
   X,
+  Trash2,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -58,6 +60,20 @@ function ProfilePage() {
     name: currentUser?.name || "",
     phoneNumber: currentUser?.phoneNumber || "",
   });
+
+  const handleDeletePost = async (postId) => {
+    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإعلان؟");
+    if (!confirmDelete) return;
+
+    try {
+      await api.delete(`/posts/${postId}`);
+      toast.success("تم حذف الإعلان بنجاح");
+      setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postId));
+    } catch (err) {
+      console.error("Error deleting post:", err);
+      toast.error(err.response?.data?.message || "حدث خطأ أثناء حذف الإعلان.");
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -409,20 +425,34 @@ function ProfilePage() {
                       </div>
 
                       {post.status === "rejected" && post.rejectionReason ? (
-                        <div className="space-y-3">
-                          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
-                            <p className="mb-1 font-semibold">سبب الرفض</p>
-                            <p className="leading-6">{post.rejectionReason}</p>
-                          </div>
-
-                          <Link
-                            to={`/edit-post/${post._id}`}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-2 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
-                          >
-                            تعديل الإعلان وإعادة التقديم
-                          </Link>
+                        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+                          <p className="mb-1 font-semibold">سبب الرفض</p>
+                          <p className="leading-6">{post.rejectionReason}</p>
                         </div>
                       ) : null}
+
+                      {(() => {
+                        const isOwner = currentUser && post.user && (post.user._id === currentUser._id || post.user === currentUser._id || post.user.toString() === currentUser._id.toString());
+                        return isOwner ? (
+                          <div className="flex gap-2">
+                            {post.status === "pending" ? (
+                              <Link
+                                to={`/edit-post/${post._id}`}
+                                className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-2 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan text-center"
+                              >
+                                تعديل
+                              </Link>
+                            ) : null}
+                            <button
+                              onClick={() => handleDeletePost(post._id)}
+                              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-bold text-red-400 transition duration-300 hover:bg-red-500/20 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              حذف الإعلان
+                            </button>
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </motion.article>
                 );
