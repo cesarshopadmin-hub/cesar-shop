@@ -131,7 +131,7 @@ function FloatingWarning() {
                 </div>
                 <h3 className="text-red-400 font-bold text-base mb-2 flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 shrink-0" />
-🔥 تنبيه مهم قبل أي تعامل                </h3>
+ تنبيه مهم قبل أي تعامل                </h3>
                 <p className="text-sm leading-relaxed text-slate-200">
 قبل أي عملية شراء أو بيع، تأكد من هوية . استخدم وسيط سيزار المعتمد لضمان حقوق جميع الأطراف.                </p>
               </div>
