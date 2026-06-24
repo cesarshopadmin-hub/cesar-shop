@@ -397,6 +397,48 @@ function HomePage() {
                 </div>
               </motion.section>
             ) : null}
+
+            <motion.section
+              variants={containerVariants}
+              className="space-y-4 pt-6 mt-6 border-t border-white/5"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                  <FaTelegramPlane className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white lg:text-xl">
+                    تواصل مع الإدارة
+                  </h3>
+                  <p className="text-xs text-cesar-gray lg:text-sm">
+                    الدعم الفني عبر تيليجرام
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                <motion.a
+                  variants={itemVariants}
+                  href="https://t.me/m/VaAqq6mjMDBk"
+                  target="_blank"
+                  rel="noreferrer"
+                  whileHover={{ y: -4 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/5 bg-cesar-dark p-4 transition duration-300 hover:border-sky-500/30 hover:bg-sky-500/5 hover:shadow-[0_0_15px_rgba(14,165,233,0.15)]"
+                >
+                  <FaTelegramPlane className="h-6 w-6 text-slate-400 transition group-hover:text-sky-400" />
+                  <span
+                    className="text-xs font-semibold text-slate-300 transition group-hover:text-white"
+                    dir="ltr"
+                  >
+                    VaAqq6mjMDBk
+                  </span>
+                  <span className="text-[10px] text-cesar-gray">
+                    إدارة سيزار
+                  </span>
+                </motion.a>
+              </div>
+            </motion.section>
           </motion.main>
         )}
       </div>
