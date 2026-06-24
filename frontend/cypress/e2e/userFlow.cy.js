@@ -108,10 +108,10 @@ describe("User Authentication and Post Creation Flow", () => {
     });
 
     it("fills the form and shows a success toast after submission", () => {
-      // ── Title ──────────────────────────────────────────────────────────────
-      cy.get('input[name="title"]')
+      // ── WhatsApp Number ───────────────────────────────────────────────────
+      cy.get('input[type="tel"]')
         .should("be.visible")
-        .type("حساب PUBG مستوى متقدم للبيع");
+        .type("1003481108");
 
       // ── Category (select) ─────────────────────────────────────────────────
       cy.get('select[name="category"]')
@@ -155,7 +155,7 @@ describe("User Authentication and Post Creation Flow", () => {
       // Click submit without filling anything — all four field errors should appear
       cy.contains("button", "إرسال الإعلان").click();
 
-      cy.contains("عنوان الإعلان مطلوب").should("be.visible");
+      cy.contains("رقم الواتساب مطلوب").should("be.visible");
       cy.contains("وصف الإعلان مطلوب").should("be.visible");
       cy.contains("السعر مطلوب").should("be.visible");
       cy.contains("يجب اختيار الفئة").should("be.visible");

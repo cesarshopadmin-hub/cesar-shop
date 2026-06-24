@@ -19,6 +19,7 @@ import {
   Trash2,
   Search,
   PlusCircle,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../../Services/api.js";
@@ -513,7 +514,7 @@ function AdminDashboardPage() {
                     >
                       <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
                         {imageUrl ? (
-                          <img src={imageUrl} alt={post.title} className="h-full w-full object-cover" />
+                          <img src={imageUrl} alt={post.category || "إعلان"} className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full items-center justify-center bg-gradient-to-br from-cesar-cyan/10 via-transparent to-white/5 text-cesar-cyan">
                             <User className="h-10 w-10" />
@@ -531,8 +532,28 @@ function AdminDashboardPage() {
                       </div>
 
                       <div className="flex flex-1 flex-col justify-between p-5 text-right">
-                        <div className="space-y-2">
-                          <h2 className="line-clamp-2 text-lg font-bold text-white">{post.title}</h2>
+                        <div className="space-y-3">
+                          <a
+                            href={
+                              post.countryCode && post.whatsappNumber
+                                ? `https://wa.me/${post.countryCode}${post.whatsappNumber}`
+                                : post.user?.phoneNumber
+                                ? `https://wa.me/${post.user.phoneNumber.replace(/^\+/, '').replace(/^00/, '').replace(/^0/, '')}`
+                                : '#'
+                            }
+                            onClick={(e) => {
+                              if (!(post.countryCode && post.whatsappNumber) && !post.user?.phoneNumber) {
+                                e.preventDefault();
+                                toast.error("رقم الواتساب غير متوفر لهذا الإعلان");
+                              }
+                            }}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#25D366]/50 bg-[#25D366]/10 px-4 py-2 font-bold text-[#25D366] transition duration-300 hover:bg-[#25D366]/20 hover:shadow-[0_0_15px_rgba(37,211,102,0.3)] text-sm"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                            تواصل عبر واتساب
+                          </a>
                           <p className="line-clamp-3 text-sm leading-6 text-cesar-gray">{post.description}</p>
                         </div>
 
@@ -956,7 +977,7 @@ function AdminDashboardPage() {
               {selectedPost ? (
                 <div className="rounded-2xl border border-white/5 bg-black/30 p-4 text-sm text-slate-300">
                   <p className="text-xs text-cesar-gray">المنشور المحدد</p>
-                  <p className="mt-1 font-semibold text-white">{selectedPost.title}</p>
+                  <p className="mt-1 font-semibold text-white">{selectedPost.category} - {selectedPost.price} ج.م</p>
                 </div>
               ) : null}
 

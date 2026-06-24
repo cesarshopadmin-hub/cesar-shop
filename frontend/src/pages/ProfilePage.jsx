@@ -15,6 +15,7 @@ import {
   Save,
   X,
   Trash2,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
@@ -366,7 +367,7 @@ function ProfilePage() {
                       {imageUrl ? (
                         <img
                           src={imageUrl}
-                          alt={post.title}
+                          alt={post.category || "إعلان"}
                           className="h-full w-full object-cover transition duration-500 hover:scale-105"
                         />
                       ) : (
@@ -407,9 +408,27 @@ function ProfilePage() {
 
                     <div className="space-y-4 p-5 text-right">
                       <div className="space-y-2">
-                        <h3 className="line-clamp-2 text-lg font-bold text-white">
-                          {post.title}
-                        </h3>
+                        <a
+                          href={
+                            post.countryCode && post.whatsappNumber
+                              ? `https://wa.me/${post.countryCode}${post.whatsappNumber}`
+                              : post.user?.phoneNumber
+                              ? `https://wa.me/${post.user.phoneNumber.replace(/^\+/, '').replace(/^00/, '').replace(/^0/, '')}`
+                              : '#'
+                          }
+                          onClick={(e) => {
+                            if (!(post.countryCode && post.whatsappNumber) && !post.user?.phoneNumber) {
+                              e.preventDefault();
+                              toast.error("رقم الواتساب غير متوفر لهذا الإعلان");
+                            }
+                          }}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#25D366]/50 bg-[#25D366]/10 px-4 py-2 font-bold text-[#25D366] transition duration-300 hover:bg-[#25D366]/20 hover:shadow-[0_0_15px_rgba(37,211,102,0.3)] text-sm"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          تواصل عبر واتساب
+                        </a>
                         <p className="line-clamp-3 text-sm leading-6 text-cesar-gray">
                           {post.description}
                         </p>
@@ -435,12 +454,12 @@ function ProfilePage() {
                         const isOwner = currentUser && post.user && (post.user._id === currentUser._id || post.user === currentUser._id || post.user.toString() === currentUser._id.toString());
                         return isOwner ? (
                           <div className="flex gap-2">
-                            {post.status === "pending" ? (
+                            {post.status === "pending" || post.status === "rejected" ? (
                               <Link
                                 to={`/edit-post/${post._id}`}
                                 className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-2 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan text-center"
                               >
-                                تعديل
+                                {post.status === "rejected" ? "تعديل الإعلان وإعادة التقديم" : "تعديل"}
                               </Link>
                             ) : null}
                             <button

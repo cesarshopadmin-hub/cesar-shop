@@ -2,7 +2,8 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Loader2, Search, Tags, User, ArrowLeft, Sparkles } from "lucide-react";
+import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle } from "lucide-react";
+import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import { normalizeText, matchesCategory } from "../utils/postHelpers.js";
 import useDocumentTitle from "../hooks/useDocumentTitle.js";
@@ -67,8 +68,7 @@ function PostsPage() {
     return posts.filter((post) => {
       const matchesSearch =
         normalizedQuery.length === 0 ||
-        normalizeText(post.title).includes(normalizedQuery) ||
-        normalizeText(post.description).includes(normalizedQuery);
+        normalizeText(post.description || "").includes(normalizedQuery);
 
       return matchesSearch && matchesCategory(post.category, selectedCategory);
     });
@@ -197,7 +197,7 @@ function PostsPage() {
                     {imageUrl ? (
                       <img
                         src={imageUrl}
-                        alt={post.title}
+                        alt={post.category || "إعلان"}
                         className="h-full w-full object-cover transition duration-500 hover:scale-105"
                       />
                     ) : (
@@ -232,10 +232,28 @@ function PostsPage() {
                   </div>
 
                   <div className="flex flex-1 flex-col justify-between p-5 text-right">
-                    <div className="space-y-2">
-                      <h2 className="line-clamp-2 text-lg font-bold text-white">
-                        {post.title}
-                      </h2>
+                    <div className="space-y-3">
+                      <a
+                        href={
+                          post.countryCode && post.whatsappNumber
+                            ? `https://wa.me/${post.countryCode}${post.whatsappNumber}`
+                            : post.user?.phoneNumber
+                            ? `https://wa.me/${post.user.phoneNumber.replace(/^\+/, '').replace(/^00/, '').replace(/^0/, '')}`
+                            : '#'
+                        }
+                        onClick={(e) => {
+                          if (!(post.countryCode && post.whatsappNumber) && !post.user?.phoneNumber) {
+                            e.preventDefault();
+                            toast.error("رقم الواتساب غير متوفر لهذا الإعلان");
+                          }
+                        }}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#25D366]/50 bg-[#25D366]/10 px-4 py-2.5 font-bold text-[#25D366] transition duration-300 hover:bg-[#25D366]/20 hover:shadow-[0_0_15px_rgba(37,211,102,0.3)] text-sm"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        تواصل عبر واتساب
+                      </a>
                       <p className="line-clamp-2 text-sm leading-6 text-cesar-gray">
                         {post.description}
                       </p>

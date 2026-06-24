@@ -10,17 +10,20 @@ import {
   Loader2,
   Tags,
   X,
-  Video,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
+import PhoneInputDefault from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
+
+const PhoneInput = PhoneInputDefault.default || PhoneInputDefault;
 
 const initialForm = {
-  title: "",
   category: "",
   price: "",
   description: "",
-  videoUrl: "",
+  whatsappNumber: "",
+  countryCode: "20",
 };
 
 function EditPostPage() {
@@ -34,6 +37,24 @@ function EditPostPage() {
   const [fetchLoading, setFetchLoading] = useState(true);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [phoneInputVal, setPhoneInputVal] = useState("");
+
+  const handlePhoneChange = (value, country) => {
+    setPhoneInputVal(value);
+    const dialCode = country?.dialCode || "20";
+    setFormData((prev) => ({
+      ...prev,
+      countryCode: dialCode,
+      whatsappNumber: value.startsWith(dialCode) ? value.slice(dialCode.length) : value
+    }));
+    if (fieldErrors.whatsappNumber) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.whatsappNumber;
+        return next;
+      });
+    }
+  };
 
   const objectUrlCache = useRef(new Map());
 
@@ -56,12 +77,13 @@ function EditPostPage() {
       try {
         const { data } = await api.get(`/posts/${id}`);
         setFormData({
-          title: data.title || "",
           category: data.category || "",
           price: data.price || "",
           description: data.description || "",
-          videoUrl: data.videoUrl || "",
+          whatsappNumber: data.whatsappNumber || "",
+          countryCode: data.countryCode || "20",
         });
+        setPhoneInputVal((data.countryCode || "20") + (data.whatsappNumber || ""));
         if (data.images) {
           setSelectedImages(data.images);
         }
@@ -122,10 +144,11 @@ function EditPostPage() {
     setLoading(true);
 
     const errors = {};
-    if (!formData.title.trim()) {
-      errors.title = "عنوان الإعلان مطلوب";
-    } else if (formData.title.trim().length < 3) {
-      errors.title = "العنوان يجب أن يكون 3 أحرف على الأقل";
+    const fullNumber = (formData.countryCode + formData.whatsappNumber).trim();
+    if (!formData.whatsappNumber.trim()) {
+      errors.whatsappNumber = "رقم الواتساب مطلوب";
+    } else if (fullNumber.length < 8) {
+      errors.whatsappNumber = "رقم الواتساب غير صالح أو قصير جداً";
     }
 
     if (!formData.description.trim()) {
@@ -148,22 +171,8 @@ function EditPostPage() {
       errors.images = "يجب اختيار صورة واحدة على الأقل";
     }
 
-    if (formData.videoUrl && formData.videoUrl.trim() !== "") {
-      const urlRegex = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/;
-      if (!urlRegex.test(formData.videoUrl.trim())) {
-        errors.videoUrl = "الرجاء إدخال رابط فيديو صحيح";
-      }
-    }
-
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
-      setLoading(false);
-      return;
-    }
-
-    const videoUrl = formData.videoUrl ? formData.videoUrl.trim() : "";
-    if (videoUrl && !videoUrl.includes('youtube.com') && !videoUrl.includes('youtu.be')) {
-      toast.error("عفواً، ندعم روابط يوتيوب فقط");
       setLoading(false);
       return;
     }
@@ -171,11 +180,11 @@ function EditPostPage() {
     setFieldErrors({});
 
     const payload = new FormData();
-    payload.append("title", formData.title.trim());
     payload.append("category", formData.category);
     payload.append("price", formData.price);
     payload.append("description", formData.description.trim());
-    payload.append("videoUrl", (formData.videoUrl || "").trim());
+    payload.append("whatsappNumber", formData.whatsappNumber.trim());
+    payload.append("countryCode", formData.countryCode.trim());
     selectedImages.forEach((file) => {
       if (file instanceof File) {
         payload.append("images", file);
@@ -229,6 +238,52 @@ function EditPostPage() {
 
   return (
     <div dir={i18n.dir()} className="min-h-screen px-4 py-10 font-cairo bg-cesar-darker">
+      {/* Custom Styles for react-phone-input-2 to fit our dark neon UI */}
+      <style>{`
+        .react-tel-input .form-control {
+          width: 100% !important;
+          background-color: rgba(0, 0, 0, 0.4) !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          color: #fff !important;
+          border-radius: 0.75rem !important;
+          padding: 0.75rem 1.25rem 0.75rem 3.5rem !important;
+          height: auto !important;
+          font-family: 'Cairo', sans-serif !important;
+          text-align: left !important;
+          direction: ltr !important;
+        }
+        .react-tel-input .form-control:focus {
+          border-color: #00D1FF !important;
+          box-shadow: 0 0 10px rgba(0, 209, 255, 0.3) !important;
+        }
+        .react-tel-input .flag-dropdown {
+          background-color: rgba(0, 0, 0, 0.4) !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          border-radius: 0.75rem 0 0 0.75rem !important;
+        }
+        .react-tel-input .flag-dropdown.open .selected-flag {
+          background: rgba(255, 255, 255, 0.05) !important;
+        }
+        .react-tel-input .selected-flag:hover,
+        .react-tel-input .selected-flag:focus {
+          background: rgba(255, 255, 255, 0.05) !important;
+        }
+        .react-tel-input .country-list {
+          background-color: #0d121c !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          color: #fff !important;
+          font-family: 'Cairo', sans-serif !important;
+          text-align: left !important;
+          z-index: 9999 !important;
+        }
+        .react-tel-input .country-list .country:hover {
+          background-color: rgba(0, 209, 255, 0.1) !important;
+        }
+        .react-tel-input .country-list .country.highlight {
+          background-color: rgba(0, 209, 255, 0.2) !important;
+        }
+      `}</style>
+
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
@@ -252,29 +307,27 @@ function EditPostPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
+          <div className="space-y-2 relative z-40">
             <label className="mr-1 text-sm font-medium text-slate-300">
-              عنوان الإعلان
+              رقم الواتساب
             </label>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500">
-                <FileText className="h-5 w-5" />
-              </div>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="مثال: حساب PUBG مستوى متقدم"
-                className={`w-full rounded-xl border bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition ${
-                  fieldErrors.title
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan"
-                }`}
+            <div className="relative" dir="ltr">
+              <PhoneInput
+                country={"eg"}
+                value={phoneInputVal}
+                onChange={handlePhoneChange}
+                enableSearch={true}
+                placeholder="رقم الواتساب"
+                countryCodeEditable={false}
               />
             </div>
-            {fieldErrors.title && (
-              <p className="mt-1 mr-1 text-xs text-red-500">{fieldErrors.title}</p>
+            {formData.countryCode === "20" && (
+              <p className="text-slate-400 text-xs pr-2 mt-1 text-right">
+                اكتب رقم الهاتف بدون الصفر الأول (مثال: 1003481108)
+              </p>
+            )}
+            {fieldErrors.whatsappNumber && (
+              <p className="mt-1 mr-1 text-xs text-red-500 text-right">{fieldErrors.whatsappNumber}</p>
             )}
           </div>
 
@@ -439,32 +492,7 @@ function EditPostPage() {
             )}
           </div>
 
-          {/* Video URL input section */}
-          <div className="space-y-2">
-            <label className="mr-1 text-sm font-medium text-slate-300">
-              رابط الفيديو (اختياري)
-            </label>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500">
-                <Video className="h-5 w-5" />
-              </div>
-              <input
-                type="text"
-                name="videoUrl"
-                value={formData.videoUrl}
-                onChange={handleChange}
-                placeholder="أضف رابط يوتيوب"
-                className={`w-full rounded-xl border bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition ${
-                  fieldErrors.videoUrl
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan"
-                }`}
-              />
-            </div>
-            {fieldErrors.videoUrl && (
-              <p className="mt-1 mr-1 text-xs text-red-500">{fieldErrors.videoUrl}</p>
-            )}
-          </div>
+
 
           <button
             type="submit"

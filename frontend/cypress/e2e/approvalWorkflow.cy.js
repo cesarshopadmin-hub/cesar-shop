@@ -12,10 +12,7 @@
 // • Login is done via the real UI login form (POST /api/auth/login).
 // • After each actor's steps we clear localStorage to simulate a logout,
 //   then navigate to /login for the next actor.
-//   (The logout *button* uses a t() i18n key so we avoid relying on its
-//    translated text and instead clear state programmatically — this is
-//    more reliable and faster.)
-// • A unique title based on Date.now() ensures the post can be identified
+// • A unique description based on Date.now() ensures the post can be identified
 //   unambiguously even if other posts exist in the pending queue.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -59,17 +56,17 @@ function logoutViaLocalStorage() {
 // ── Test suite ────────────────────────────────────────────────────────────────
 
 describe("Full Post Approval Lifecycle", () => {
-  // uniqueTitle is shared across all steps via an alias set in the first test.
+  // uniqueDesc is shared across all steps via an alias set in the first test.
   // Cypress aliases reset per-spec but persist across `it` blocks within one suite
   // when using before() + cy.wrap().as().
   before(() => {
-    const title = `إعلان تجريبي ${Date.now()}`;
-    cy.wrap(title).as("uniqueTitle");
+    const desc = `هذا إعلان تجريبي لاختبار دورة حياة الموافقة الكاملة ${Date.now()}`;
+    cy.wrap(desc).as("uniqueDesc");
   });
 
   // ── Step 1: Regular User creates a post ─────────────────────────────────────
   it("Step 1 — User creates a new pending post", function () {
-    const { uniqueTitle } = this;
+    const { uniqueDesc } = this;
 
     loginAs(USER_EMAIL, USER_PASSWORD);
 
@@ -77,12 +74,10 @@ describe("Full Post Approval Lifecycle", () => {
     cy.contains("إضافة إعلان جديد").should("be.visible");
 
     // Fill the form
-    cy.get('input[name="title"]').type(uniqueTitle);
+    cy.get('input[type="tel"]').type("1003481108");
     cy.get('select[name="category"]').select("اخري");
     cy.get('input[name="price"]').type("200");
-    cy.get('textarea[name="description"]').type(
-      "هذا إعلان تجريبي لاختبار دورة حياة الموافقة الكاملة على المنصة"
-    );
+    cy.get('textarea[name="description"]').type(uniqueDesc);
 
     // Attach a 1×1 pixel PNG so the image validation passes
     cy.get('input[type="file"]').selectFile(
@@ -103,7 +98,7 @@ describe("Full Post Approval Lifecycle", () => {
 
     // Verify the post now appears in the user's profile as pending
     cy.visit("/profile");
-    cy.contains(uniqueTitle, { timeout: 10000 }).should("be.visible");
+    cy.contains(uniqueDesc, { timeout: 10000 }).should("be.visible");
     cy.contains("قيد المراجعة").should("be.visible");
 
     logoutViaLocalStorage();
@@ -111,15 +106,15 @@ describe("Full Post Approval Lifecycle", () => {
 
   // ── Step 2: Admin rejects the post ──────────────────────────────────────────
   it("Step 2 — Admin finds the post and rejects it with a reason", function () {
-    const { uniqueTitle } = this;
+    const { uniqueDesc } = this;
 
     loginAs(ADMIN_EMAIL, ADMIN_PASSWORD);
 
     cy.visit("/admin/dashboard");
     cy.contains("بوابة الإدارة والرقابة", { timeout: 10000 }).should("be.visible");
 
-    // Locate the specific post card by its unique title
-    cy.contains(uniqueTitle, { timeout: 10000 })
+    // Locate the specific post card by its unique description
+    cy.contains(uniqueDesc, { timeout: 10000 })
       .closest("article")
       .within(() => {
         // Click the reject button inside this card
@@ -141,21 +136,21 @@ describe("Full Post Approval Lifecycle", () => {
     cy.contains("تم رفض المنشور بنجاح.", { timeout: 10000 }).should("be.visible");
 
     // The post card should disappear from the pending list
-    cy.contains(uniqueTitle).should("not.exist");
+    cy.contains(uniqueDesc).should("not.exist");
 
     logoutViaLocalStorage();
   });
 
   // ── Step 3: User edits the rejected post ────────────────────────────────────
   it("Step 3 — User sees the rejection reason and edits the post", function () {
-    const { uniqueTitle } = this;
+    const { uniqueDesc } = this;
 
     loginAs(USER_EMAIL, USER_PASSWORD);
 
     cy.visit("/profile");
 
     // The post should now appear as rejected with the rejection reason
-    cy.contains(uniqueTitle, { timeout: 10000 })
+    cy.contains(uniqueDesc, { timeout: 10000 })
       .closest("article")
       .within(() => {
         cy.contains("مرفوض").should("be.visible");
@@ -171,11 +166,13 @@ describe("Full Post Approval Lifecycle", () => {
 
     // Update the price and description to address the rejection reason
     cy.get('input[name="price"]').clear().type("350");
+    const updatedDesc = `${uniqueDesc} - تم التحديث`;
     cy.get('textarea[name="description"]')
       .clear()
-      .type(
-        "تم تحديث الوصف: حساب PUBG مستوى ماسي، السعر 350 جنيه يشمل جميع السكنات النادرة"
-      );
+      .type(updatedDesc);
+
+    // Save the new description alias for Step 4
+    cy.wrap(updatedDesc).as("uniqueDesc");
 
     // Submit the edits
     cy.contains("button", "إرسال التعديلات").click();
@@ -185,7 +182,7 @@ describe("Full Post Approval Lifecycle", () => {
 
     // After edit, redirects to /profile and post is back to pending
     cy.url().should("include", "/profile");
-    cy.contains(uniqueTitle, { timeout: 10000 }).should("be.visible");
+    cy.contains(updatedDesc, { timeout: 10000 }).should("be.visible");
     cy.contains("قيد المراجعة").should("be.visible");
 
     logoutViaLocalStorage();
@@ -193,7 +190,7 @@ describe("Full Post Approval Lifecycle", () => {
 
   // ── Step 4: Admin approves the re-submitted post ─────────────────────────────
   it("Step 4 — Admin approves the re-submitted post", function () {
-    const { uniqueTitle } = this;
+    const { uniqueDesc } = this;
 
     loginAs(ADMIN_EMAIL, ADMIN_PASSWORD);
 
@@ -201,7 +198,7 @@ describe("Full Post Approval Lifecycle", () => {
     cy.contains("بوابة الإدارة والرقابة", { timeout: 10000 }).should("be.visible");
 
     // Find the re-submitted post and approve it
-    cy.contains(uniqueTitle, { timeout: 10000 })
+    cy.contains(uniqueDesc, { timeout: 10000 })
       .closest("article")
       .within(() => {
         cy.contains("button", "موافقة").click();
@@ -213,7 +210,7 @@ describe("Full Post Approval Lifecycle", () => {
     );
 
     // Post disappears from the pending list after approval
-    cy.contains(uniqueTitle).should("not.exist");
+    cy.contains(uniqueDesc).should("not.exist");
 
     logoutViaLocalStorage();
   });

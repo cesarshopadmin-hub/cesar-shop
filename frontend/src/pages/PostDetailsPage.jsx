@@ -60,14 +60,7 @@ const PostDetailsPage = () => {
   // Lightbox States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   
-  const getYouTubeEmbedUrl = (url) => {
-    if (!url || typeof url !== 'string') return null;
-    const regExp = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-    const match = url.match(regExp);
-    return match ? `https://www.youtube.com/embed/${match[1]}` : null;
-  };
 
-  const embedUrl = getYouTubeEmbedUrl(post?.videoUrl);
 
   const handlePrev = () => {
     if (post && post.images && post.images.length > 0) {
@@ -236,7 +229,7 @@ const PostDetailsPage = () => {
                     ? post.images[currentImageIndex]
                     : "https://via.placeholder.com/600x400?text=No+Image"
                 }
-                alt={post.title}
+                alt={post.category || "إعلان"}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-zoom-in"
                 onClick={() => setIsLightboxOpen(true)}
               />
@@ -275,7 +268,7 @@ const PostDetailsPage = () => {
                   >
                     <img
                       src={img}
-                      alt={`${post.title}-${idx}`}
+                      alt={`${post.category || "إعلان"}-${idx}`}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -297,9 +290,29 @@ const PostDetailsPage = () => {
                   })}
                 </span>
               </div>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-                {post.title}
-              </h1>
+              <div className="mb-4">
+                <a
+                  href={
+                    post.countryCode && post.whatsappNumber
+                      ? `https://wa.me/${post.countryCode}${post.whatsappNumber}`
+                      : post.user?.phoneNumber
+                      ? `https://wa.me/${post.user.phoneNumber.replace(/^\+/, '').replace(/^00/, '').replace(/^0/, '')}`
+                      : '#'
+                  }
+                  onClick={(e) => {
+                    if (!(post.countryCode && post.whatsappNumber) && !post.user?.phoneNumber) {
+                      e.preventDefault();
+                      toast.error("رقم الواتساب غير متوفر لهذا الإعلان");
+                    }
+                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-3 w-full py-4 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/50 hover:shadow-[0_0_20px_rgba(37,211,102,0.3)] rounded-xl font-bold text-lg transition-all duration-300 group"
+                >
+                  <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  تواصل عبر واتساب
+                </a>
+              </div>
               <div className="text-4xl font-black text-cesar-cyan drop-shadow-[0_0_12px_rgba(0,255,255,0.4)]">
                 {post.price} جنيه
               </div>
@@ -310,22 +323,6 @@ const PostDetailsPage = () => {
                 {post.description}
               </p>
             </div>
-
-            {embedUrl && (
-              <div className="mb-8 p-6 rounded-xl border border-cesar-cyan/20 bg-black/20 text-right">
-                <h3 className="text-lg font-bold text-white mb-3">الفيديو التوضيحي</h3>
-                <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 bg-black shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                  <iframe
-                    src={embedUrl}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    className="absolute top-0 left-0 w-full h-full"
-                  ></iframe>
-                </div>
-              </div>
-            )}
 
             {/* ── Owner Actions ── */}
             {isOwner && (
@@ -401,12 +398,13 @@ const PostDetailsPage = () => {
                 </div>
 
                 {/* WhatsApp CTA */}
-                {post.user.phoneNumber && (
+                {(post.user.phoneNumber || (post.countryCode && post.whatsappNumber)) && (
                   <a
-                    href={`https://wa.me/20${post.user.phoneNumber.replace(
-                      /^0/,
-                      ""
-                    )}`}
+                    href={
+                      post.countryCode && post.whatsappNumber
+                        ? `https://wa.me/${post.countryCode}${post.whatsappNumber}`
+                        : `https://wa.me/${post.user.phoneNumber.replace(/^\+/, '').replace(/^00/, '').replace(/^0/, '')}`
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-6 flex items-center justify-center gap-3 w-full py-4 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/50 hover:shadow-[0_0_20px_rgba(37,211,102,0.3)] rounded-xl font-bold text-lg transition-all duration-300 group"
@@ -525,7 +523,7 @@ const PostDetailsPage = () => {
               >
                 <img
                   src={post.images[currentImageIndex]}
-                  alt={`${post.title}-lightbox`}
+                  alt={`${post.category || "إعلان"}-lightbox`}
                   className="max-w-[90vw] max-h-[85vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/5"
                 />
               </motion.div>
