@@ -2,11 +2,12 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle } from "lucide-react";
+import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import { normalizeText, matchesCategory } from "../utils/postHelpers.js";
 import useDocumentTitle from "../hooks/useDocumentTitle.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const categoryOptions = [
   { value: "all", label: "الكل" },
@@ -22,11 +23,28 @@ function PostsPage() {
   const { t, i18n } = useTranslation();
   useDocumentTitle(t("nav.logo") + " | " + t("nav.posts"));
 
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const handleDeletePost = async (postId) => {
+    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإعلان نهائياً؟");
+    if (!confirmDelete) return;
+
+    try {
+      await api.delete(`/posts/${postId}`);
+      toast.success("تم حذف الإعلان بنجاح");
+      setPosts((prevPosts) => prevPosts.filter((post) => post._id !== postId));
+    } catch (err) {
+      console.error("Error deleting post:", err);
+      toast.error(err.response?.data?.message || "حدث خطأ أثناء حذف الإعلان.");
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -275,13 +293,25 @@ function PostsPage() {
                         </div>
                       </div>
 
-                      <Link
-                        to={`/posts/${post._id}`}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-3 font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
-                      >
-                        عرض التفاصيل
-                        <ArrowLeft className="h-4 w-4" />
-                      </Link>
+                      <div className="flex gap-2 w-full">
+                        <Link
+                          to={`/posts/${post._id}`}
+                          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-3 font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan text-sm"
+                        >
+                          عرض التفاصيل
+                          <ArrowLeft className="h-4 w-4" />
+                        </Link>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePost(post._id)}
+                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 font-bold text-red-400 transition duration-300 hover:bg-red-500/20 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] text-sm"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            حذف
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </motion.article>

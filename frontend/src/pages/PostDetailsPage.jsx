@@ -41,14 +41,14 @@ const PostDetailsPage = () => {
   const isOwner = currentUser && post && post.user && (post.user._id === currentUser._id || post.user === currentUser._id || post.user.toString() === currentUser._id.toString());
 
   const handleDeletePost = async () => {
-    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإعلان؟");
+    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإعلان نهائياً؟");
     if (!confirmDelete) return;
 
     try {
       setActionLoading(true);
       await api.delete(`/posts/${post._id}`);
       toast.success("تم حذف الإعلان بنجاح");
-      navigate("/profile");
+      navigate(isAdmin ? "/admin/dashboard" : "/profile");
     } catch (err) {
       console.error("Error deleting post:", err);
       toast.error(err.response?.data?.message || "حدث خطأ أثناء حذف الإعلان.");
@@ -324,14 +324,14 @@ const PostDetailsPage = () => {
               </p>
             </div>
 
-            {/* ── Owner Actions ── */}
-            {isOwner && (
+            {/* ── Owner/Admin Actions ── */}
+            {(isOwner || isAdmin) && (
               <div className="bg-black/40 border border-red-500/20 rounded-2xl p-6 mb-6 shadow-lg backdrop-blur-sm text-right">
                 <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-3 mb-5">
-                  إدارة الإعلان الخاص بك
+                  {isAdmin ? "إدارة الإعلان (أدمن)" : "إدارة الإعلان الخاص بك"}
                 </h3>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  {post.status === "pending" && (
+                  {isOwner && post.status === "pending" && (
                     <Link
                       to={`/edit-post/${post._id}`}
                       className="flex-1 flex items-center justify-center gap-2 py-3 border border-cesar-cyan/40 bg-cesar-cyan/10 text-cesar-cyan hover:bg-cesar-cyan/20 hover:shadow-neon-cyan rounded-xl font-bold text-sm transition-all duration-300 text-center"
