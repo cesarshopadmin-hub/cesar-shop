@@ -104,15 +104,18 @@ function HomePage() {
     };
   }, [retryToken]);
 
-  const cards = useMemo(
-    () =>
-      socialLinks.map((link, index) => ({
-        ...link,
-        index,
-        Icon: getLinkIcon(link.platform),
-      })),
-    [socialLinks],
-  );
+  const cards = useMemo(() => {
+    const mapped = socialLinks.map((link, index) => ({
+      ...link,
+      index,
+      Icon: getLinkIcon(link.platform),
+    }));
+    return mapped.sort((a, b) => {
+      const platformA = a.platform || "other";
+      const platformB = b.platform || "other";
+      return platformA.localeCompare(platformB);
+    });
+  }, [socialLinks]);
 
   return (
     <section
