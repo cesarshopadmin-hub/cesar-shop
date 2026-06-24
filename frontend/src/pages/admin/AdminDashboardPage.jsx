@@ -344,7 +344,7 @@ function AdminDashboardPage() {
         </section>
 
         {/* ── Statistics Overview Cards ── */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
           {/* Card 1: Users */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -354,25 +354,25 @@ function AdminDashboardPage() {
               setActiveTab("users");
               setUserTypeFilter("user");
             }}
-            className={`relative overflow-hidden rounded-2xl border bg-cesar-dark/80 p-5 shadow-2xl backdrop-blur-md flex items-center justify-between group hover:border-cesar-cyan/25 cursor-pointer hover:scale-[1.02] transition-all duration-300 ${
+            className={`relative overflow-hidden rounded-2xl border bg-cesar-dark/80 p-4 sm:p-5 shadow-2xl backdrop-blur-md flex items-center justify-between group hover:border-cesar-cyan/25 cursor-pointer hover:scale-[1.02] transition-all duration-300 ${
               activeTab === "users" && userTypeFilter === "user"
                 ? "border-cesar-cyan/40 shadow-[0_0_20px_rgba(0,209,255,0.15)] ring-1 ring-cesar-cyan/20"
                 : "border-white/5 shadow-black/40"
             }`}
           >
             <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-cesar-cyan/5 blur-xl group-hover:bg-cesar-cyan/10 transition-all duration-300" />
-            <div className="space-y-1.5 text-right z-10">
-              <p className="text-xs text-cesar-gray font-medium">عدد المستخدمين</p>
-              <h3 className="text-2xl font-bold text-cesar-cyan font-mono leading-none">
+            <div className="space-y-1 text-right z-10">
+              <p className="text-[10px] sm:text-xs text-cesar-gray font-medium">عدد المستخدمين</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-cesar-cyan font-mono leading-none">
                 {usersLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin inline-block" />
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin inline-block" />
                 ) : (
                   users.filter((u) => u.role !== "admin").length
                 )}
               </h3>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-cesar-cyan/10 border border-cesar-cyan/20 flex items-center justify-center text-cesar-cyan shadow-[0_0_15px_rgba(0,209,255,0.15)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-300">
-              <User className="h-5 w-5" />
+            <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-xl bg-cesar-cyan/10 border border-cesar-cyan/20 flex items-center justify-center text-cesar-cyan shadow-[0_0_15px_rgba(0,209,255,0.15)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-300">
+              <User className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
           </motion.div>
 
@@ -385,25 +385,25 @@ function AdminDashboardPage() {
               setActiveTab("users");
               setUserTypeFilter("admin");
             }}
-            className={`relative overflow-hidden rounded-2xl border bg-cesar-dark/80 p-5 shadow-2xl backdrop-blur-md flex items-center justify-between group hover:border-emerald-500/25 cursor-pointer hover:scale-[1.02] transition-all duration-300 ${
+            className={`relative overflow-hidden rounded-2xl border bg-cesar-dark/80 p-4 sm:p-5 shadow-2xl backdrop-blur-md flex items-center justify-between group hover:border-emerald-500/25 cursor-pointer hover:scale-[1.02] transition-all duration-300 ${
               activeTab === "users" && userTypeFilter === "admin"
                 ? "border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/20"
                 : "border-white/5 shadow-black/40"
             }`}
           >
             <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-all duration-300" />
-            <div className="space-y-1.5 text-right z-10">
-              <p className="text-xs text-cesar-gray font-medium">عدد المسؤولين</p>
-              <h3 className="text-2xl font-bold text-emerald-400 font-mono leading-none">
+            <div className="space-y-1 text-right z-10">
+              <p className="text-[10px] sm:text-xs text-cesar-gray font-medium">عدد المسؤولين</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-emerald-400 font-mono leading-none">
                 {usersLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin inline-block" />
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin inline-block" />
                 ) : (
                   users.filter((u) => u.role === "admin").length
                 )}
               </h3>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-300">
-              <ShieldCheck className="h-5 w-5" />
+            <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-300">
+              <ShieldCheck className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
           </motion.div>
 
@@ -416,25 +416,25 @@ function AdminDashboardPage() {
               setActiveTab("users");
               setUserTypeFilter("blocked");
             }}
-            className={`relative overflow-hidden rounded-2xl border bg-cesar-dark/80 p-5 shadow-2xl backdrop-blur-md flex items-center justify-between group hover:border-red-500/25 cursor-pointer hover:scale-[1.02] transition-all duration-300 ${
+            className={`relative overflow-hidden rounded-2xl border bg-cesar-dark/80 p-4 sm:p-5 shadow-2xl backdrop-blur-md flex items-center justify-between group hover:border-red-500/25 cursor-pointer hover:scale-[1.02] transition-all duration-300 ${
               activeTab === "users" && userTypeFilter === "blocked"
                 ? "border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.15)] ring-1 ring-red-500/20"
                 : "border-white/5 shadow-black/40"
             }`}
           >
             <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-500/5 blur-xl group-hover:bg-red-500/10 transition-all duration-300" />
-            <div className="space-y-1.5 text-right z-10">
-              <p className="text-xs text-cesar-gray font-medium">الأعضاء المحظورين</p>
-              <h3 className="text-2xl font-bold text-red-400 font-mono leading-none">
+            <div className="space-y-1 text-right z-10">
+              <p className="text-[10px] sm:text-xs text-cesar-gray font-medium">الأعضاء المحظورين</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-red-400 font-mono leading-none">
                 {usersLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin inline-block" />
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin inline-block" />
                 ) : (
                   users.filter((u) => u.isBlocked).length
                 )}
               </h3>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.15)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-300">
-              <UserX className="h-5 w-5" />
+            <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.15)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-300">
+              <UserX className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
           </motion.div>
 
@@ -446,25 +446,25 @@ function AdminDashboardPage() {
             onClick={() => {
               setActiveTab("scammers");
             }}
-            className={`relative overflow-hidden rounded-2xl border bg-cesar-dark/80 p-5 shadow-2xl backdrop-blur-md flex items-center justify-between group hover:border-orange-500/25 cursor-pointer hover:scale-[1.02] transition-all duration-300 ${
+            className={`relative overflow-hidden rounded-2xl border bg-cesar-dark/80 p-4 sm:p-5 shadow-2xl backdrop-blur-md flex items-center justify-between group hover:border-orange-500/25 cursor-pointer hover:scale-[1.02] transition-all duration-300 ${
               activeTab === "scammers"
                 ? "border-orange-500/40 shadow-[0_0_20px_rgba(249,115,22,0.15)] ring-1 ring-orange-500/20"
                 : "border-white/5 shadow-black/40"
             }`}
           >
             <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-orange-500/5 blur-xl group-hover:bg-orange-500/10 transition-all duration-300" />
-            <div className="space-y-1.5 text-right z-10">
-              <p className="text-xs text-cesar-gray font-medium">قائمة النصابين (المحظورين)</p>
-              <h3 className="text-2xl font-bold text-orange-400 font-mono leading-none">
+            <div className="space-y-1 text-right z-10">
+              <p className="text-[10px] sm:text-xs text-cesar-gray font-medium">قائمة النصابين (المحظورين)</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-orange-400 font-mono leading-none">
                 {scammersLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin inline-block" />
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin inline-block" />
                 ) : (
                   scammers.length
                 )}
               </h3>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.15)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-300">
-              <AlertCircle className="h-5 w-5" />
+            <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.15)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-300">
+              <AlertCircle className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
           </motion.div>
         </div>
