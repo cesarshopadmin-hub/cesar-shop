@@ -24,7 +24,8 @@ function PostsPage() {
   useDocumentTitle(t("nav.logo") + " | " + t("nav.posts"));
 
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const currentUser = user;
+  const isAdmin = currentUser?.role === "admin";
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,8 +33,8 @@ function PostsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const handleDeletePost = async (postId) => {
-    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإعلان نهائياً؟");
+  const deletePost = async (postId) => {
+    const confirmDelete = window.confirm("هل أنت متأكد؟");
     if (!confirmDelete) return;
 
     try {
@@ -240,6 +241,23 @@ function PostsPage() {
                       </span>
                     )}
 
+                    {currentUser && currentUser.role === 'admin' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          deletePost(post._id);
+                        }}
+                        className={`absolute top-2 bg-red-600/90 hover:bg-red-600 border border-red-500/30 text-white rounded-full p-2.5 z-20 shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_rgba(239,68,68,0.6)] ${
+                          i18n.dir() === "rtl" ? "right-2" : "left-2"
+                        }`}
+                        title="حذف الإعلان"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+
                     <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2 rounded-full border border-cesar-cyan/20 bg-black/55 px-3 py-1.5 text-xs font-semibold text-cesar-cyan backdrop-blur-sm">
@@ -252,15 +270,9 @@ function PostsPage() {
                   <div className="flex flex-1 flex-col justify-between p-5 text-right">
                     <div className="space-y-3">
                       <a
-                        href={
-                          post.countryCode && post.whatsappNumber
-                            ? `https://wa.me/${post.countryCode}${post.whatsappNumber}`
-                            : post.user?.phoneNumber
-                            ? `https://wa.me/${post.user.phoneNumber.replace(/^\+/, '').replace(/^00/, '').replace(/^0/, '')}`
-                            : '#'
-                        }
+                        href={`https://wa.me/${post.countryCode || ''}${post.whatsappNumber || ''}`}
                         onClick={(e) => {
-                          if (!(post.countryCode && post.whatsappNumber) && !post.user?.phoneNumber) {
+                          if (!post.countryCode || !post.whatsappNumber) {
                             e.preventDefault();
                             toast.error("رقم الواتساب غير متوفر لهذا الإعلان");
                           }
@@ -296,21 +308,11 @@ function PostsPage() {
                       <div className="flex gap-2 w-full">
                         <Link
                           to={`/posts/${post._id}`}
-                          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-3 font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan text-sm"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-3 font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan text-sm"
                         >
                           عرض التفاصيل
                           <ArrowLeft className="h-4 w-4" />
                         </Link>
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePost(post._id)}
-                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 font-bold text-red-400 transition duration-300 hover:bg-red-500/20 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] text-sm"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            حذف
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
