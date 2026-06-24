@@ -32,11 +32,13 @@ function PostsPage() {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [postToDelete, setPostToDelete] = useState(null);
 
-  const deletePost = async (postId) => {
-    const confirmDelete = window.confirm("هل أنت متأكد؟");
-    if (!confirmDelete) return;
+  const deletePost = (postId) => {
+    setPostToDelete(postId);
+  };
 
+  const handleDeleteConfirm = async (postId) => {
     try {
       await api.delete(`/posts/${postId}`);
       toast.success("تم حذف الإعلان بنجاح");
@@ -44,6 +46,8 @@ function PostsPage() {
     } catch (err) {
       console.error("Error deleting post:", err);
       toast.error(err.response?.data?.message || "حدث خطأ أثناء حذف الإعلان.");
+    } finally {
+      setPostToDelete(null);
     }
   };
 
@@ -322,6 +326,38 @@ function PostsPage() {
           </motion.div>
         )}
       </div>
+
+      {/* ── Custom Deletion Confirmation Modal ── */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md rounded-[1.75rem] border border-red-500/30 bg-cesar-dark p-6 text-right shadow-[0_0_30px_rgba(239,68,68,0.15)] backdrop-blur-xl"
+          >
+            <h3 className="text-xl font-bold text-white mb-2">تأكيد حذف الإعلان</h3>
+            <p className="text-sm text-cesar-gray mb-6 leading-6">
+              هل أنت متأكد؟ لا يمكن التراجع عن حذف هذا الإعلان نهائياً.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setPostToDelete(null)}
+                className="px-4 py-2.5 text-sm font-bold text-cesar-gray hover:text-white transition duration-200"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteConfirm(postToDelete)}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl border border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition duration-300"
+              >
+                تأكيد الحذف
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </section>
   );
 }

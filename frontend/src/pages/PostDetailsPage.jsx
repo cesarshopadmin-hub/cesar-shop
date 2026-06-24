@@ -290,17 +290,14 @@ const PostDetailsPage = () => {
                   })}
                 </span>
               </div>
-              <div className="mb-4">
+              <div className="text-4xl font-black text-cesar-cyan drop-shadow-[0_0_12px_rgba(0,255,255,0.4)] mb-4">
+                {post.price} جنيه
+              </div>
+              <div className="mb-6">
                 <a
-                  href={
-                    post.countryCode && post.whatsappNumber
-                      ? `https://wa.me/${post.countryCode}${post.whatsappNumber}`
-                      : post.user?.phoneNumber
-                      ? `https://wa.me/${post.user.phoneNumber.replace(/^\+/, '').replace(/^00/, '').replace(/^0/, '')}`
-                      : '#'
-                  }
+                  href={`https://wa.me/${post.countryCode || ''}${post.whatsappNumber || ''}`}
                   onClick={(e) => {
-                    if (!(post.countryCode && post.whatsappNumber) && !post.user?.phoneNumber) {
+                    if (!post.countryCode || !post.whatsappNumber) {
                       e.preventDefault();
                       toast.error("رقم الواتساب غير متوفر لهذا الإعلان");
                     }
@@ -312,9 +309,6 @@ const PostDetailsPage = () => {
                   <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
                   تواصل عبر واتساب
                 </a>
-              </div>
-              <div className="text-4xl font-black text-cesar-cyan drop-shadow-[0_0_12px_rgba(0,255,255,0.4)]">
-                {post.price} جنيه
               </div>
             </div>
 
@@ -397,22 +391,7 @@ const PostDetailsPage = () => {
                   )}
                 </div>
 
-                {/* WhatsApp CTA */}
-                {(post.user.phoneNumber || (post.countryCode && post.whatsappNumber)) && (
-                  <a
-                    href={
-                      post.countryCode && post.whatsappNumber
-                        ? `https://wa.me/${post.countryCode}${post.whatsappNumber}`
-                        : `https://wa.me/${post.user.phoneNumber.replace(/^\+/, '').replace(/^00/, '').replace(/^0/, '')}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-6 flex items-center justify-center gap-3 w-full py-4 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/50 hover:shadow-[0_0_20px_rgba(37,211,102,0.3)] rounded-xl font-bold text-lg transition-all duration-300 group"
-                  >
-                    <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                    تواصل عبر واتساب
-                  </a>
-                )}
+
               </div>
             )}
           </div>
