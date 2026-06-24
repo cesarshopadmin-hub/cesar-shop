@@ -131,11 +131,9 @@ function FloatingWarning() {
                 </div>
                 <h3 className="text-red-400 font-bold text-base mb-2 flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 shrink-0" />
-                  حماية تعاملاتك المالية
-                </h3>
+🔥 تنبيه مهم قبل أي تعامل                </h3>
                 <p className="text-sm leading-relaxed text-slate-200">
-                  تحذير هام: يرجى الحذر من عمليات النصب. تأكد من موثوقية البائع قبل تحويل أي مبالغ مالية. ننصح دائمًا باستخدام وساطة معتمدة أو مقابلة مباشرة إذا كان ذلك ممكنًا.
-                </p>
+قبل أي عملية شراء أو بيع، تأكد من هوية . استخدم وسيط سيزار المعتمد لضمان حقوق جميع الأطراف.                </p>
               </div>
 
               {/* Scammers List Section */}
