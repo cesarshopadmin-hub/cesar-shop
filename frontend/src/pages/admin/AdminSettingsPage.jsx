@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -35,7 +35,11 @@ function AdminSettingsPage() {
         if (isMounted) {
           setAlertMessage(response.data?.alertMessage || "");
           setAdminNumbers(response.data?.adminContactNumbers || []);
-          setSocialLinks(response.data?.socialLinks || []);
+          const linksWithIds = (response.data?.socialLinks || []).map((link, idx) => ({
+            ...link,
+            _id: link._id || `existing-${idx}-${Date.now()}`
+          }));
+          setSocialLinks(linksWithIds);
         }
       } catch (err) {
         toast.error("تعذر تحميل إعدادات المتجر.");
@@ -72,21 +76,27 @@ function AdminSettingsPage() {
   const handleAddSocialLink = () => {
     setSocialLinks((prev) => [
       ...prev,
-      { platform: "whatsapp", title: "", subtitle: "", url: "" },
+      { _id: `new-${Date.now()}`, platform: "whatsapp", title: "", subtitle: "", url: "" },
     ]);
   };
 
-  const handleSocialLinkChange = (index, field, value) => {
-    setSocialLinks((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
-      return next;
-    });
+  const handleSocialLinkChange = (id, field, value) => {
+    setSocialLinks((prev) =>
+      prev.map((link) => (link._id === id ? { ...link, [field]: value } : link))
+    );
   };
 
-  const handleRemoveSocialLink = (index) => {
-    setSocialLinks((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveSocialLink = (id) => {
+    setSocialLinks((prev) => prev.filter((link) => link._id !== id));
   };
+
+  const sortedSocialLinks = useMemo(() => {
+    return [...socialLinks].sort((a, b) => {
+      const platformA = a.platform || "other";
+      const platformB = b.platform || "other";
+      return platformA.localeCompare(platformB);
+    });
+  }, [socialLinks]);
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -127,7 +137,11 @@ function AdminSettingsPage() {
       const { data } = await api.put("/settings", payload);
       toast.success("تم حفظ الإعدادات العامة بنجاح.");
       setAdminNumbers(data.adminContactNumbers || []);
-      setSocialLinks(data.socialLinks || []);
+      const linksWithIds = (data.socialLinks || []).map((link, idx) => ({
+        ...link,
+        _id: link._id || `existing-${idx}-${Date.now()}`
+      }));
+      setSocialLinks(linksWithIds);
     } catch (err) {
       toast.error(
         err.response?.data?.message || "تعذر حفظ الإعدادات. حاول مرة أخرى.",
@@ -287,20 +301,20 @@ function AdminSettingsPage() {
             </div>
 
             <div className="space-y-4">
-              {socialLinks.length === 0 ? (
+              {sortedSocialLinks.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-6 text-center">
                   <p className="text-sm text-cesar-gray">لا توجد روابط تواصل اجتماعي مسجلة.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {socialLinks.map((link, index) => (
+                  {sortedSocialLinks.map((link) => (
                     <div
-                      key={index}
+                      key={link._id}
                       className="relative rounded-xl border border-white/5 bg-black/30 p-5 space-y-4 text-right"
                     >
                       <button
                         type="button"
-                        onClick={() => handleRemoveSocialLink(index)}
+                        onClick={() => handleRemoveSocialLink(link._id)}
                         className="absolute top-4 left-4 flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition duration-200"
                         title="حذف الرابط"
                       >
@@ -314,7 +328,7 @@ function AdminSettingsPage() {
                             required
                             value={link.platform}
                             onChange={(e) =>
-                              handleSocialLinkChange(index, "platform", e.target.value)
+                              handleSocialLinkChange(link._id, "platform", e.target.value)
                             }
                             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan"
                           >
@@ -335,7 +349,7 @@ function AdminSettingsPage() {
                             placeholder="مثال: تواصل معنا عبر واتساب"
                             value={link.title}
                             onChange={(e) =>
-                              handleSocialLinkChange(index, "title", e.target.value)
+                              handleSocialLinkChange(link._id, "title", e.target.value)
                             }
                             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
                           />
@@ -350,7 +364,7 @@ function AdminSettingsPage() {
                             placeholder="مثال: متاح طوال أيام الأسبوع"
                             value={link.subtitle}
                             onChange={(e) =>
-                              handleSocialLinkChange(index, "subtitle", e.target.value)
+                              handleSocialLinkChange(link._id, "subtitle", e.target.value)
                             }
                             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
                           />
@@ -364,7 +378,7 @@ function AdminSettingsPage() {
                             placeholder="https://..."
                             value={link.url}
                             onChange={(e) =>
-                              handleSocialLinkChange(index, "url", e.target.value)
+                              handleSocialLinkChange(link._id, "url", e.target.value)
                             }
                             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
                           />
