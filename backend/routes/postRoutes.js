@@ -9,6 +9,7 @@ import {
   updatePostStatus,
   getPostById,
   updatePost,
+  deletePost,
 } from "../controllers/postController.js";
 import { protect, admin } from "../middlewares/authMiddleware.js";
 
@@ -81,5 +82,6 @@ router.put(
   ]),
   updatePost
 );
+router.delete("/:id", protect, deletePost);
 
 export default router;

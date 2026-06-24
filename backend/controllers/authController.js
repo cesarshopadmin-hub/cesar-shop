@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Post from "../models/Post.js";
 import generateToken from "../utils/generateToken.js";
 import { uploadToCloudinary } from "../middlewares/uploadMiddleware.js";
 import { v2 as cloudinary } from "cloudinary";
@@ -183,52 +184,54 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 });
 
 const updateProfilePicture = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  try {
+    const user = await User.findById(req.user._id);
 
-  if (!user) {
-    res.status(404);
-    throw new Error("المستخدم غير موجود");
-  }
-
-  if (req.file) {
-    // Safe Deletion: Before attempting to delete the old image from Cloudinary, explicitly check if the URL exists and is valid
-    if (user.profilePictureUrl && user.profilePictureUrl.includes("cloudinary")) {
-      try {
-        const publicId = getPublicIdFromUrl(user.profilePictureUrl);
-        if (publicId) {
-          await cloudinary.uploader.destroy(publicId);
-        }
-      } catch (err) {
-        console.error("Cloudinary old profile picture deletion failed:", err);
-      }
+    if (!user) {
+      res.status(404);
+      return res.status(404).json({ message: "المستخدم غير موجود" });
     }
 
-    // Direct Upload using cloudinary.uploader.upload_stream
-    const result = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: "profile_pictures" },
-        (error, result) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result);
+    if (req.file) {
+      // Safe Deletion: Before attempting to delete the old image from Cloudinary, explicitly check if the URL exists and is valid
+      if (user.profilePictureUrl && user.profilePictureUrl.includes("cloudinary")) {
+        try {
+          const publicId = getPublicIdFromUrl(user.profilePictureUrl);
+          if (publicId) {
+            await cloudinary.uploader.destroy(publicId);
           }
+        } catch (err) {
+          console.error("Cloudinary old profile picture deletion failed:", err);
         }
-      );
-      uploadStream.end(req.file.buffer);
+      }
+
+      // Convert buffer to Data URI and upload to Cloudinary using standard method
+      const b64 = Buffer.from(req.file.buffer).toString("base64");
+      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+
+      const result = await cloudinary.uploader.upload(dataURI, {
+        folder: "profiles",
+        resource_type: "auto",
+      });
+
+      user.profilePictureUrl = result.secure_url;
+    }
+
+    await user.save();
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      profilePictureUrl: user.profilePictureUrl,
     });
-
-    user.profilePictureUrl = result.secure_url;
+  } catch (error) {
+    console.error("Profile picture upload error:", error);
+    res.status(500).json({
+      message: "فشل تحميل الصورة الشخصية",
+      error: error.message,
+    });
   }
-
-  await user.save();
-
-  res.json({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    profilePictureUrl: user.profilePictureUrl,
-  });
 });
 
 const addAdmin = asyncHandler(async (req, res) => {
@@ -292,6 +295,14 @@ const toggleBlockUser = asyncHandler(async (req, res) => {
   }
   user.isBlocked = !user.isBlocked;
   await user.save();
+
+  if (user.isBlocked) {
+    await Post.updateMany(
+      { user: user._id },
+      { $set: { status: "rejected", rejectionReason: "User account was banned by admin" } }
+    );
+  }
+
   res.json({
     message: user.isBlocked ? "تم حظر المستخدم بنجاح" : "تم إلغاء حظر المستخدم بنجاح",
     isBlocked: user.isBlocked,

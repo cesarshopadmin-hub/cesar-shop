@@ -1,6 +1,22 @@
 import asyncHandler from "express-async-handler";
 import Post from "../models/Post.js";
 import { uploadToCloudinary } from "../middlewares/uploadMiddleware.js";
+import { v2 as cloudinary } from "cloudinary";
+
+const getPublicIdFromUrl = (url) => {
+  try {
+    const parts = url.split("/upload/");
+    if (parts.length < 2) return null;
+    const pathParts = parts[1].split("/");
+    if (pathParts[0].startsWith("v") && /^\d+$/.test(pathParts[0].substring(1))) {
+      pathParts.shift();
+    }
+    const filename = pathParts.join("/");
+    return filename.split(".")[0];
+  } catch {
+    return null;
+  }
+};
 
 const createPost = asyncHandler(async (req, res) => {
   const { title, description, category, price, videoUrl } = req.body;
@@ -95,9 +111,16 @@ const updatePost = asyncHandler(async (req, res) => {
     throw new Error("Post not found");
   }
 
+  // Ensure only the post owner can edit the post
   if (post.user.toString() !== req.user._id.toString()) {
-    res.status(401);
+    res.status(403);
     throw new Error("غير مصرح لك بتعديل هذا الإعلان");
+  }
+
+  // Strict status check: can only edit if pending
+  if (post.status !== "pending") {
+    res.status(400);
+    throw new Error("لا يمكن تعديل الإعلان بعد مراجعته");
   }
 
   post.title = title || post.title;
@@ -125,7 +148,53 @@ const updatePost = asyncHandler(async (req, res) => {
   res.json(updatedPost);
 });
 
+const deletePost = asyncHandler(async (req, res) => {
+  const post = await Post.findById(req.params.id);
 
+  if (!post) {
+    res.status(404);
+    throw new Error("الإعلان غير موجود");
+  }
+
+  // Ensure only the post owner OR an admin can delete the post
+  if (post.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("غير مصرح لك بحذف هذا الإعلان");
+  }
+
+  // Delete images from Cloudinary
+  if (post.images && post.images.length > 0) {
+    for (const imageUrl of post.images) {
+      if (imageUrl && imageUrl.includes("cloudinary")) {
+        try {
+          const publicId = getPublicIdFromUrl(imageUrl);
+          if (publicId) {
+            await cloudinary.uploader.destroy(publicId);
+          }
+        } catch (err) {
+          console.error("Failed to delete post image from Cloudinary:", err);
+        }
+      }
+    }
+  }
+
+  // Support single image field just in case
+  if (post.image && post.image.includes("cloudinary")) {
+    try {
+      const publicId = getPublicIdFromUrl(post.image);
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId);
+      }
+    } catch (err) {
+      console.error("Failed to delete post image from Cloudinary:", err);
+    }
+  }
+
+  // Delete the post from the database
+  await post.deleteOne();
+
+  res.json({ message: "تم حذف الإعلان بنجاح" });
+});
 
 export {
   createPost,
@@ -135,4 +204,5 @@ export {
   updatePostStatus,
   getPostById,
   updatePost,
+  deletePost,
 };
