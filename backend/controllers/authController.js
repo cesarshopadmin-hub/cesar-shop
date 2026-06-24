@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
-import { v2 as cloudinary } from "cloudinary";
+import { uploadToCloudinary } from "../middlewares/uploadMiddleware.js";
 
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -175,9 +175,7 @@ const updateProfilePicture = asyncHandler(async (req, res) => {
   }
 
   if (req.file) {
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "profile_pictures",
-    });
+    const result = await uploadToCloudinary(req.file.buffer, "profile_pictures");
     user.profilePictureUrl = result.secure_url;
   }
 

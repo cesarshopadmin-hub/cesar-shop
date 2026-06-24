@@ -1,15 +1,18 @@
 import asyncHandler from "express-async-handler";
 import Post from "../models/Post.js";
+import { uploadToCloudinary } from "../middlewares/uploadMiddleware.js";
 
 const createPost = asyncHandler(async (req, res) => {
   const { title, description, category, price, videoUrl } = req.body;
   
   let imageUrls = [];
 
-  if (req.files) {
-    if (req.files.images) {
-      imageUrls = req.files.images.map((file) => file.path);
-    }
+  if (req.files && req.files.images) {
+    const uploadPromises = req.files.images.map((file) =>
+      uploadToCloudinary(file.buffer, "cesar_shop_media")
+    );
+    const results = await Promise.all(uploadPromises);
+    imageUrls = results.map((result) => result.secure_url);
   }
 
   const post = await Post.create({
@@ -106,11 +109,13 @@ const updatePost = asyncHandler(async (req, res) => {
     post.videoUrl = videoUrl;
   }
 
-  if (req.files) {
-    if (req.files.images && req.files.images.length > 0) {
-      const imageUrls = req.files.images.map((file) => file.path);
-      post.images = imageUrls;
-    }
+  if (req.files && req.files.images && req.files.images.length > 0) {
+    const uploadPromises = req.files.images.map((file) =>
+      uploadToCloudinary(file.buffer, "cesar_shop_media")
+    );
+    const results = await Promise.all(uploadPromises);
+    const imageUrls = results.map((result) => result.secure_url);
+    post.images = imageUrls;
   }
 
   post.status = "pending";

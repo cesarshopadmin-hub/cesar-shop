@@ -1,6 +1,5 @@
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -11,18 +10,26 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    const isVideo = file.mimetype.startsWith("video/") || 
-                    /\.(mp4|mov|avi)$/i.test(file.originalname);
-    return {
-      folder: "cesar_shop_media",
-      resource_type: isVideo ? "video" : "image",
-      allowed_formats: isVideo ? ["mp4", "mov", "avi"] : ["jpg", "png", "jpeg", "webp"],
-    };
-  },
-});
+const storage = multer.memoryStorage();
+
+export const uploadToCloudinary = (fileBuffer, folder, resourceType = "auto") => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: folder,
+        resource_type: resourceType,
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+    uploadStream.end(fileBuffer);
+  });
+};
 
 const upload = multer({
   storage: storage,
