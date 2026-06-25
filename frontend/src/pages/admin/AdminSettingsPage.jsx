@@ -21,6 +21,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -170,6 +171,12 @@ function AdminSettingsPage() {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -401,7 +408,7 @@ function AdminSettingsPage() {
                             <div className="relative rounded-xl border border-white/5 bg-black/30 p-5 space-y-4 text-right">
                               {/* Drag handle icon */}
                               <div
-                                className="absolute top-4 left-14 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white cursor-grab active:cursor-grabbing transition duration-200 z-10"
+                                className="absolute top-4 left-14 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white cursor-grab active:cursor-grabbing transition duration-200 z-10 touch-none"
                                 title="اسحب لإعادة الترتيب"
                                 {...dragHandleProps}
                               >
