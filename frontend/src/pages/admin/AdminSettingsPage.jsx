@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -12,10 +12,52 @@ import {
   Phone,
   Share2,
   ArrowRight,
-  Info,
+  GripVertical,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../../Services/api.js";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+function SortableItem({ id, children }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : "auto",
+    opacity: isDragging ? 0.7 : 1,
+    position: "relative",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ dragHandleProps: { ...attributes, ...listeners } })}
+    </div>
+  );
+}
+
 
 function AdminSettingsPage() {
   const { t, i18n } = useTranslation();
@@ -42,6 +84,7 @@ function AdminSettingsPage() {
           setSocialLinks(linksWithIds);
         }
       } catch (err) {
+        console.error(err);
         toast.error("تعذر تحميل إعدادات المتجر.");
       } finally {
         if (isMounted) {
@@ -90,13 +133,49 @@ function AdminSettingsPage() {
     setSocialLinks((prev) => prev.filter((link) => link._id !== id));
   };
 
-  const sortedSocialLinks = useMemo(() => {
-    return [...socialLinks].sort((a, b) => {
-      const platformA = a.platform || "other";
-      const platformB = b.platform || "other";
-      return platformA.localeCompare(platformB);
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    let newArray = [];
+    setSocialLinks((prev) => {
+      const oldIndex = prev.findIndex((item) => item._id === active.id);
+      const newIndex = prev.findIndex((item) => item._id === over.id);
+      newArray = arrayMove(prev, oldIndex, newIndex);
+      return newArray;
     });
+
+    const payload = newArray
+      .filter((item) => !item._id.startsWith("new-"))
+      .map((item, index) => ({
+        id: item._id,
+        order: index,
+      }));
+
+    if (payload.length > 0) {
+      try {
+        await api.put("/links/reorder", payload);
+      } catch (err) {
+        console.error("Failed to update links order:", err);
+        toast.error("تعذر تحديث ترتيب الروابط في قاعدة البيانات.");
+      }
+    }
+  };
+
+  const sortedSocialLinks = useMemo(() => {
+    return socialLinks;
   }, [socialLinks]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -306,87 +385,108 @@ function AdminSettingsPage() {
                   <p className="text-sm text-cesar-gray">لا توجد روابط تواصل اجتماعي مسجلة.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {sortedSocialLinks.map((link) => (
-                    <div
-                      key={link._id}
-                      className="relative rounded-xl border border-white/5 bg-black/30 p-5 space-y-4 text-right"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSocialLink(link._id)}
-                        className="absolute top-4 left-4 flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition duration-200"
-                        title="حذف الرابط"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={sortedSocialLinks.map((link) => link._id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-4">
+                      {sortedSocialLinks.map((link) => (
+                        <SortableItem key={link._id} id={link._id}>
+                          {({ dragHandleProps }) => (
+                            <div className="relative rounded-xl border border-white/5 bg-black/30 p-5 space-y-4 text-right">
+                              {/* Drag handle icon */}
+                              <div
+                                className="absolute top-4 left-14 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white cursor-grab active:cursor-grabbing transition duration-200 z-10"
+                                title="اسحب لإعادة الترتيب"
+                                {...dragHandleProps}
+                              >
+                                <GripVertical className="h-4 w-4" />
+                              </div>
 
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-slate-300">اسم المنصة (النوع)</label>
-                          <select
-                            required
-                            value={link.platform}
-                            onChange={(e) =>
-                              handleSocialLinkChange(link._id, "platform", e.target.value)
-                            }
-                            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan"
-                          >
-                            <option value="whatsapp">{t("enums.whatsapp", { defaultValue: "واتساب" })}</option>
-                            <option value="facebook">{t("enums.facebook", { defaultValue: "فيسبوك" })}</option>
-                            <option value="telegram">{t("enums.telegram", { defaultValue: "تيليجرام" })}</option>
-                            <option value="tiktok">{t("enums.tiktok", { defaultValue: "تيك توك" })}</option>
-                            <option value="instagram">{t("enums.instagram", { defaultValue: "انستجرام" })}</option>
-                            <option value="other">{t("enums.other", { defaultValue: "أخرى / منصة مختلفة" })}</option>
-                          </select>
-                        </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSocialLink(link._id)}
+                                className="absolute top-4 left-4 flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition duration-200 z-10"
+                                title="حذف الرابط"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
 
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-slate-300">العنوان الرئيسي للرابط</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="مثال: تواصل معنا عبر واتساب"
-                            value={link.title}
-                            onChange={(e) =>
-                              handleSocialLinkChange(link._id, "title", e.target.value)
-                            }
-                            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
-                          />
-                        </div>
-                      </div>
+                              <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-slate-300">اسم المنصة (النوع)</label>
+                                  <select
+                                    required
+                                    value={link.platform}
+                                    onChange={(e) =>
+                                      handleSocialLinkChange(link._id, "platform", e.target.value)
+                                    }
+                                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan"
+                                  >
+                                    <option value="whatsapp">{t("enums.whatsapp", { defaultValue: "واتساب" })}</option>
+                                    <option value="facebook">{t("enums.facebook", { defaultValue: "فيسبوك" })}</option>
+                                    <option value="telegram">{t("enums.telegram", { defaultValue: "تيليجرام" })}</option>
+                                    <option value="tiktok">{t("enums.tiktok", { defaultValue: "تيك توك" })}</option>
+                                    <option value="instagram">{t("enums.instagram", { defaultValue: "انستجرام" })}</option>
+                                    <option value="other">{t("enums.other", { defaultValue: "أخرى / منصة مختلفة" })}</option>
+                                  </select>
+                                </div>
 
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-slate-300">العنوان الفرعي (اختياري)</label>
-                          <input
-                            type="text"
-                            placeholder="مثال: متاح طوال أيام الأسبوع"
-                            value={link.subtitle}
-                            onChange={(e) =>
-                              handleSocialLinkChange(link._id, "subtitle", e.target.value)
-                            }
-                            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
-                          />
-                        </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-slate-300">العنوان الرئيسي للرابط</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="مثال: تواصل معنا عبر واتساب"
+                                    value={link.title}
+                                    onChange={(e) =>
+                                      handleSocialLinkChange(link._id, "title", e.target.value)
+                                    }
+                                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                                  />
+                                </div>
+                              </div>
 
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-slate-300">الرابط الكامل (URL)</label>
-                          <input
-                            type="url"
-                            required
-                            placeholder="https://..."
-                            value={link.url}
-                            onChange={(e) =>
-                              handleSocialLinkChange(link._id, "url", e.target.value)
-                            }
-                            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
-                          />
-                        </div>
-                      </div>
+                              <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-slate-300">العنوان الفرعي (اختياري)</label>
+                                  <input
+                                    type="text"
+                                    placeholder="مثال: متاح طوال أيام الأسبوع"
+                                    value={link.subtitle}
+                                    onChange={(e) =>
+                                      handleSocialLinkChange(link._id, "subtitle", e.target.value)
+                                    }
+                                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-slate-300">الرابط الكامل (URL)</label>
+                                  <input
+                                    type="url"
+                                    required
+                                    placeholder="https://..."
+                                    value={link.url}
+                                    onChange={(e) =>
+                                      handleSocialLinkChange(link._id, "url", e.target.value)
+                                    }
+                                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan focus:shadow-neon-cyan"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </SortableItem>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
               )}
 
               <button

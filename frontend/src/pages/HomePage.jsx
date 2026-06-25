@@ -104,39 +104,46 @@ function HomePage() {
     };
   }, [retryToken]);
 
+  // const cards = useMemo(() => {
+  //   const mapped = socialLinks.map((link, index) => ({
+  //     ...link,
+  //     index,
+  //     Icon: getLinkIcon(link.platform),
+  //   }));
+  //   return mapped.sort((a, b) => {
+  //     const isWhatsappA = (a.platform || "").toLowerCase() === "whatsapp";
+  //     const isWhatsappB = (b.platform || "").toLowerCase() === "whatsapp";
+
+  //     // 1. Platform Priority: WhatsApp always at the top
+  //     if (isWhatsappA && !isWhatsappB) return -1;
+  //     if (!isWhatsappA && isWhatsappB) return 1;
+
+  //     // 2. Platform Grouping (for non-WhatsApp items)
+  //     if (!isWhatsappA && !isWhatsappB) {
+  //       const platformComp = (a.platform || "").localeCompare(b.platform || "");
+  //       if (platformComp !== 0) return platformComp;
+  //     }
+
+  //     // Both are of the same platform (or both are WhatsApp)
+  //     const titleA = a.title || "";
+  //     const titleB = b.title || "";
+  //     const isChannelA = titleA.includes("قناة");
+  //     const isChannelB = titleB.includes("قناة");
+
+  //     // 3. Channel Placement: Pushed to the bottom of the platform group
+  //     if (isChannelA && !isChannelB) return 1;
+  //     if (!isChannelA && isChannelB) return -1;
+
+  //     // 4. Alphabetical Order (for title)
+  //     return titleA.localeCompare(titleB, undefined, { numeric: true });
+  //   });
+  // }, [socialLinks]);
   const cards = useMemo(() => {
-    const mapped = socialLinks.map((link, index) => ({
+    return socialLinks.map((link, index) => ({
       ...link,
       index,
       Icon: getLinkIcon(link.platform),
     }));
-    return mapped.sort((a, b) => {
-      const isWhatsappA = (a.platform || "").toLowerCase() === "whatsapp";
-      const isWhatsappB = (b.platform || "").toLowerCase() === "whatsapp";
-
-      // 1. Platform Priority: WhatsApp always at the top
-      if (isWhatsappA && !isWhatsappB) return -1;
-      if (!isWhatsappA && isWhatsappB) return 1;
-
-      // 2. Platform Grouping (for non-WhatsApp items)
-      if (!isWhatsappA && !isWhatsappB) {
-        const platformComp = (a.platform || "").localeCompare(b.platform || "");
-        if (platformComp !== 0) return platformComp;
-      }
-
-      // Both are of the same platform (or both are WhatsApp)
-      const titleA = a.title || "";
-      const titleB = b.title || "";
-      const isChannelA = titleA.includes("قناة");
-      const isChannelB = titleB.includes("قناة");
-
-      // 3. Channel Placement: Pushed to the bottom of the platform group
-      if (isChannelA && !isChannelB) return 1;
-      if (!isChannelA && isChannelB) return -1;
-
-      // 4. Alphabetical Order (for title)
-      return titleA.localeCompare(titleB, undefined, { numeric: true });
-    });
   }, [socialLinks]);
 
   return (
