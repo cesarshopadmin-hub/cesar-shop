@@ -30,6 +30,10 @@ const socialLinkSchema = new mongoose.Schema(
       ],
       default: "whatsapp",
     },
+    order: {
+      type: Number,
+      default: 0,
+    },
   },
   { _id: true },
 );

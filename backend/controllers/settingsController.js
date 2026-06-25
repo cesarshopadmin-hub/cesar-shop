@@ -9,6 +9,11 @@ export const getSettings = asyncHandler(async (req, res) => {
 
   if (!settings) {
     settings = {};
+  } else {
+    settings = settings.toObject();
+    if (settings.socialLinks) {
+      settings.socialLinks.sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
   }
 
   res.json(settings);
@@ -26,11 +31,18 @@ export const updateSettings = asyncHandler(async (req, res) => {
   if (adminContactNumbers !== undefined) updateData.adminContactNumbers = adminContactNumbers;
   if (alertMessage !== undefined) updateData.alertMessage = alertMessage;
 
-  const settings = await Settings.findOneAndUpdate(
+  let settings = await Settings.findOneAndUpdate(
     {},
     updateData,
     { new: true, upsert: true, runValidators: true }
   );
+
+  if (settings) {
+    settings = settings.toObject();
+    if (settings.socialLinks) {
+      settings.socialLinks.sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
+  }
 
   res.json(settings);
 });

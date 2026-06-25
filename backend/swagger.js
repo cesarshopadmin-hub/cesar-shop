@@ -338,6 +338,7 @@ const swaggerOptions = {
                           subtitle: { type: "string", example: "العرض شغال من 12 صباحًا إلى 12 مساءً فقط ⏳" },
                           url: { type: "string", example: "https://chat.whatsapp.com/YOUR_LINK" },
                           platform: { type: "string", enum: ["whatsapp", "facebook", "tiktok", "telegram", "instagram", "other"], example: "whatsapp" },
+                          order: { type: "integer", example: 0 },
                         },
                       },
                     },
@@ -349,6 +350,62 @@ const swaggerOptions = {
           responses: {
             200: { description: "تم تحديث الإعدادات بنجاح في قاعدة البيانات" },
             403: { description: "خاص بالأدمن فقط" },
+          },
+        },
+      },
+      "/links/reorder": {
+        put: {
+          summary: "إعادة ترتيب روابط التواصل الاجتماعي (خاص بالأدمن)",
+          tags: ["Settings"],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string", example: "60d0fe4f5311236168a109ca" },
+                      order: { type: "integer", example: 1 },
+                    },
+                    required: ["id", "order"],
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "تم إعادة ترتيب الروابط بنجاح",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      message: { type: "string", example: "Links reordered successfully" },
+                      socialLinks: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            _id: { type: "string" },
+                            title: { type: "string" },
+                            subtitle: { type: "string" },
+                            url: { type: "string" },
+                            platform: { type: "string" },
+                            order: { type: "integer" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "طلب غير صالح" },
+            403: { description: "غير مصرح - أدمن فقط" },
           },
         },
       },
