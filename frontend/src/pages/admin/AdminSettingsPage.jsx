@@ -406,23 +406,28 @@ function AdminSettingsPage() {
                         <SortableItem key={link._id} id={link._id}>
                           {({ dragHandleProps }) => (
                             <div className="relative rounded-xl border border-white/5 bg-black/30 p-5 space-y-4 text-right">
-                              {/* Drag handle icon */}
-                              <div
-                                className="absolute top-4 left-14 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white cursor-grab active:cursor-grabbing transition duration-200 z-10 touch-none"
-                                title="اسحب لإعادة الترتيب"
-                                {...dragHandleProps}
-                              >
-                                <GripVertical className="h-4 w-4" />
-                              </div>
+                              {/* Header row containing drag handle and delete button */}
+                              <div className="flex items-center gap-3 mb-4 select-none">
+                                {/* Wide, prominent drag handle button */}
+                                <div
+                                  className="flex-1 flex items-center justify-center gap-2 h-10 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-cesar-cyan/30 text-slate-300 hover:text-white cursor-grab active:cursor-grabbing transition duration-200 touch-none select-none text-sm font-medium font-cairo"
+                                  title="اسحب لإعادة الترتيب"
+                                  {...dragHandleProps}
+                                >
+                                  <GripVertical className="h-4 w-4 shrink-0" />
+                                  <span>اسحب لإعادة الترتيب</span>
+                                </div>
 
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveSocialLink(link._id)}
-                                className="absolute top-4 left-4 flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition duration-200 z-10"
-                                title="حذف الرابط"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                                {/* Delete button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSocialLink(link._id)}
+                                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition duration-200"
+                                  title="حذف الرابط"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
 
                               <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
