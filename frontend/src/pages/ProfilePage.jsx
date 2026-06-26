@@ -20,6 +20,7 @@ import {
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { optimizeImage } from "../utils/imageOptimizer.js";
 
 const statusMeta = {
   pending: {
@@ -177,7 +178,7 @@ function ProfilePage() {
                 ) : profilePictureUrl ? (
                   <div className="relative h-16 w-16">
                     <img
-                      src={profilePictureUrl}
+                      src={optimizeImage(profilePictureUrl)}
                       alt={currentUser?.name}
                       className="h-full w-full rounded-2xl object-cover border border-cesar-cyan/30 group-hover:border-cesar-cyan transition shadow-neon-cyan"
                     />
@@ -366,7 +367,7 @@ function ProfilePage() {
                     <div className="relative aspect-[16/10] overflow-hidden bg-black/40">
                       {imageUrl ? (
                         <img
-                          src={imageUrl}
+                          src={optimizeImage(imageUrl)}
                           alt={post.category || "إعلان"}
                           className="h-full w-full object-cover transition duration-500 hover:scale-105"
                         />

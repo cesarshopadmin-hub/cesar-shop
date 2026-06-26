@@ -8,6 +8,7 @@ import api from "../Services/api.js";
 import { normalizeText, matchesCategory } from "../utils/postHelpers.js";
 import useDocumentTitle from "../hooks/useDocumentTitle.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { optimizeImage } from "../utils/imageOptimizer.js";
 
 const categoryOptions = [
   { value: "all", label: "الكل" },
@@ -219,7 +220,7 @@ function PostsPage() {
                   <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
                     {imageUrl ? (
                       <img
-                        src={imageUrl}
+                        src={optimizeImage(imageUrl)}
                         alt={post.category || "إعلان"}
                         className="h-full w-full object-cover transition duration-500 hover:scale-105"
                       />

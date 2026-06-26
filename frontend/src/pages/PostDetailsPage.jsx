@@ -20,6 +20,7 @@ import { toast } from "react-toastify";
 import api from "../Services/api";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
+import { optimizeImage } from "../utils/imageOptimizer.js";
 
 const PostDetailsPage = () => {
   const { t, i18n } = useTranslation();
@@ -226,7 +227,7 @@ const PostDetailsPage = () => {
               <img
                 src={
                   post.images && post.images.length > 0
-                    ? post.images[currentImageIndex]
+                    ? optimizeImage(post.images[currentImageIndex])
                     : "https://via.placeholder.com/600x400?text=No+Image"
                 }
                 alt={post.category || "إعلان"}
@@ -267,7 +268,7 @@ const PostDetailsPage = () => {
                     }`}
                   >
                     <img
-                      src={img}
+                      src={optimizeImage(img)}
                       alt={`${post.category || "إعلان"}-${idx}`}
                       className="w-full h-full object-cover"
                     />
@@ -501,7 +502,7 @@ const PostDetailsPage = () => {
                 className="relative max-w-full max-h-full select-none"
               >
                 <img
-                  src={post.images[currentImageIndex]}
+                  src={optimizeImage(post.images[currentImageIndex])}
                   alt={`${post.category || "إعلان"}-lightbox`}
                   className="max-w-[90vw] max-h-[85vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/5"
                 />

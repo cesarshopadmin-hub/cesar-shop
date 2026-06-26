@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../../Services/api.js";
+import { optimizeImage } from "../../utils/imageOptimizer.js";
 
 function AdminDashboardPage() {
   const { t, i18n } = useTranslation();
@@ -514,7 +515,7 @@ function AdminDashboardPage() {
                     >
                       <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
                         {imageUrl ? (
-                          <img src={imageUrl} alt={post.category || "إعلان"} className="h-full w-full object-cover" />
+                          <img src={optimizeImage(imageUrl)} alt={post.category || "إعلان"} className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full items-center justify-center bg-gradient-to-br from-cesar-cyan/10 via-transparent to-white/5 text-cesar-cyan">
                             <User className="h-10 w-10" />

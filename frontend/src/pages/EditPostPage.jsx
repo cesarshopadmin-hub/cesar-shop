@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import PhoneInputDefault from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import { optimizeImage } from "../utils/imageOptimizer.js";
 
 const PhoneInput = PhoneInputDefault.default || PhoneInputDefault;
 
@@ -474,7 +475,7 @@ function EditPostPage() {
                       className="relative h-24 w-24 rounded-xl border border-white/10 bg-black/40"
                     >
                       <img
-                        src={url}
+                        src={optimizeImage(url)}
                         alt={`preview-${index}`}
                         className="h-full w-full object-cover rounded-xl"
                       />
