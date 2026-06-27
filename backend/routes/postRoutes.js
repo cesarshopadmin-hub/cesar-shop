@@ -58,6 +58,38 @@ const postValidationRules = [
     .withMessage("Invalid category"),
 ];
 
+const postUpdateValidationRules = [
+  body("whatsappNumber")
+    .optional()
+    .isNumeric()
+    .withMessage("WhatsApp number must contain only numbers")
+    .isLength({ min: 4, max: 15 })
+    .withMessage("WhatsApp number must be between 4 and 15 digits"),
+  body("countryCode")
+    .optional()
+    .isNumeric()
+    .withMessage("Country code must contain only numbers"),
+  body("description")
+    .optional()
+    .isLength({ min: 10 })
+    .withMessage("Description must be at least 10 characters long"),
+  body("price")
+    .optional()
+    .isNumeric()
+    .withMessage("Price must be numeric"),
+  body("category")
+    .optional()
+    .isIn([
+      "فري فاير",
+      "ببجي",
+      "بيس فيفا و كلاش",
+      "حسابات سوشيال ميديا",
+      "اخري",
+    ])
+    .withMessage("Invalid category"),
+];
+
+
 router.post(
   "/",
   protect,
@@ -93,7 +125,7 @@ router.put(
   upload.fields([
     { name: "images", maxCount: 5 }
   ]),
-  postValidationRules,
+  postUpdateValidationRules,
   handleValidationErrors,
   updatePost
 );

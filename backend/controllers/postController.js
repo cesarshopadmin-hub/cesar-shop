@@ -67,7 +67,7 @@ const getPendingPosts = asyncHandler(async (req, res) => {
 });
 
 const updatePostStatus = asyncHandler(async (req, res) => {
-  const { status, rejectionReason } = req.body;
+  const { status, rejectionReason, description } = req.body;
 
   const post = await Post.findById(req.params.id);
 
@@ -78,6 +78,10 @@ const updatePostStatus = asyncHandler(async (req, res) => {
 
   post.status = status;
   post.rejectionReason = status === "rejected" ? rejectionReason || "" : "";
+
+  if (status === "approved" && description !== undefined) {
+    post.description = description;
+  }
 
   await post.save();
 
@@ -111,35 +115,41 @@ const updatePost = asyncHandler(async (req, res) => {
     throw new Error("Post not found");
   }
 
-  // Ensure only the post owner can edit the post
-  if (post.user.toString() !== req.user._id.toString()) {
+  const isAdmin = req.user && req.user.role === "admin";
+  const isOwner = post.user.toString() === req.user._id.toString();
+
+  if (!isAdmin && !isOwner) {
     res.status(403);
     throw new Error("غير مصرح لك بتعديل هذا الإعلان");
   }
 
-  // Strict status check: can only edit if pending or rejected
-  if (post.status !== "pending" && post.status !== "rejected") {
-    res.status(400);
-    throw new Error("لا يمكن تعديل الإعلان بعد قبوله");
+  if (!isAdmin && isOwner && post.status !== "pending") {
+    res.status(403);
+    throw new Error("غير مصرح لك بتعديل هذا الإعلان إلا إذا كان معلقاً");
   }
 
-  post.whatsappNumber = whatsappNumber || post.whatsappNumber;
-  post.countryCode = countryCode || post.countryCode;
-  post.description = description || post.description;
-  post.category = category || post.category;
-  post.price = price || post.price;
+  post.description = description !== undefined ? description : post.description;
 
-  if (req.files && req.files.images && req.files.images.length > 0) {
-    const uploadPromises = req.files.images.map((file) =>
-      uploadToCloudinary(file.buffer, "cesar_shop_media")
-    );
-    const results = await Promise.all(uploadPromises);
-    const imageUrls = results.map((result) => result.secure_url);
-    post.images = imageUrls;
+  if (isOwner) {
+    post.whatsappNumber = whatsappNumber !== undefined ? whatsappNumber : post.whatsappNumber;
+    post.countryCode = countryCode !== undefined ? countryCode : post.countryCode;
+    post.category = category !== undefined ? category : post.category;
+    post.price = price !== undefined ? price : post.price;
+
+    if (req.files && req.files.images && req.files.images.length > 0) {
+      const uploadPromises = req.files.images.map((file) =>
+        uploadToCloudinary(file.buffer, "cesar_shop_media")
+      );
+      const results = await Promise.all(uploadPromises);
+      const imageUrls = results.map((result) => result.secure_url);
+      post.images = imageUrls;
+    }
   }
 
-  post.status = "pending";
-  post.rejectionReason = "";
+  if (!isAdmin) {
+    post.status = "pending";
+    post.rejectionReason = "";
+  }
 
   const updatedPost = await post.save();
   res.json(updatedPost);
