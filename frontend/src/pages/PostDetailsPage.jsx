@@ -38,6 +38,34 @@ const PostDetailsPage = () => {
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
+  // Admin Edit Description States
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [tempDesc, setTempDesc] = useState("");
+  const [updatingDesc, setUpdatingDesc] = useState(false);
+
+  const handleSaveDescription = async () => {
+    if (!tempDesc.trim()) {
+      toast.error("الوصف لا يمكن أن يكون فارغاً");
+      return;
+    }
+    if (tempDesc.trim().length < 10) {
+      toast.error("يجب أن يكون وصف الإعلان 10 أحرف على الأقل");
+      return;
+    }
+    try {
+      setUpdatingDesc(true);
+      const response = await api.put(`/posts/${post._id}`, { description: tempDesc });
+      setPost((prev) => ({ ...prev, description: response.data.description }));
+      toast.success("تم تحديث وصف الإعلان بنجاح");
+      setIsEditingDesc(false);
+    } catch (err) {
+      console.error("Error updating post description:", err);
+      toast.error(err.response?.data?.message || "حدث خطأ أثناء تحديث الوصف.");
+    } finally {
+      setUpdatingDesc(false);
+    }
+  };
+
   const currentUser = user?.name ? user : user?.user;
   const isOwner = currentUser && post && post.user && (post.user._id === currentUser._id || post.user === currentUser._id || post.user.toString() === currentUser._id.toString());
 
@@ -313,10 +341,56 @@ const PostDetailsPage = () => {
               </div>
             </div>
 
-            <div className="prose prose-invert max-w-none text-gray-300 mb-8 bg-black/20 p-6 rounded-xl border border-white/5">
-              <p className="leading-relaxed whitespace-pre-wrap text-lg">
-                {post.description}
-              </p>
+            <div className="prose prose-invert max-w-none text-gray-300 mb-8 bg-black/20 p-6 rounded-xl border border-white/5 text-right">
+              {isEditingDesc ? (
+                <div className="space-y-4 font-cairo">
+                  <textarea
+                    value={tempDesc}
+                    onChange={(e) => setTempDesc(e.target.value)}
+                    className="w-full min-h-[120px] bg-cesar-darker border border-white/10 rounded-xl p-4 text-white placeholder-slate-500 focus:outline-none focus:border-cesar-cyan/50 text-sm leading-relaxed text-right font-cairo"
+                    placeholder="عدل وصف الإعلان هنا..."
+                    disabled={updatingDesc}
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingDesc(false)}
+                      disabled={updatingDesc}
+                      className="px-4 py-2 rounded-xl text-sm font-bold text-cesar-gray hover:text-white transition duration-200"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveDescription}
+                      disabled={updatingDesc}
+                      className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-cesar-cyan/20 border border-cesar-cyan/40 hover:bg-cesar-cyan/30 hover:shadow-neon-cyan transition duration-300 disabled:opacity-50"
+                    >
+                      {updatingDesc ? "جاري الحفظ..." : "حفظ التعديل"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative group/desc">
+                  <p className="leading-relaxed whitespace-pre-wrap text-lg">
+                    {post.description}
+                  </p>
+                  {isAdmin && (
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTempDesc(post.description);
+                          setIsEditingDesc(true);
+                        }}
+                        className="bg-cesar-cyan/10 border border-cesar-cyan/30 hover:bg-cesar-cyan/20 text-cesar-cyan text-xs font-bold px-3 py-1.5 rounded-lg transition duration-200"
+                      >
+                        تعديل الوصف (أدمن)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* ── Owner/Admin Actions ── */}

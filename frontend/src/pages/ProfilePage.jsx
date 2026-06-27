@@ -455,12 +455,12 @@ function ProfilePage() {
                         const isOwner = currentUser && post.user && (post.user._id === currentUser._id || post.user === currentUser._id || post.user.toString() === currentUser._id.toString());
                         return isOwner ? (
                           <div className="flex gap-2">
-                            {post.status === "pending" || post.status === "rejected" ? (
+                            {post.status === "pending" ? (
                               <Link
                                 to={`/edit-post/${post._id}`}
                                 className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-4 py-2 text-sm font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan text-center"
                               >
-                                {post.status === "rejected" ? "تعديل الإعلان وإعادة التقديم" : "تعديل"}
+                                تعديل
                               </Link>
                             ) : null}
                             <button

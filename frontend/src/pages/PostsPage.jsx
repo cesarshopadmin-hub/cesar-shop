@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle, Trash2 } from "lucide-react";
+import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle, Trash2, X } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import { normalizeText, matchesCategory } from "../utils/postHelpers.js";
@@ -34,6 +34,7 @@ function PostsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [postToDelete, setPostToDelete] = useState(null);
+  const [activeLightboxImage, setActiveLightboxImage] = useState(null);
 
   const deletePost = (postId) => {
     setPostToDelete(postId);
@@ -217,6 +218,28 @@ function PostsPage() {
                   }}
                   className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-white/5 bg-cesar-dark/80 shadow-2xl shadow-black/40 backdrop-blur-md"
                 >
+                  {/* Card Header (Social Media Style) */}
+                  <div className="flex items-center p-3 border-b border-white/5 bg-black/20">
+                    {/* User Info (Right side in RTL) */}
+                    <div className="flex items-center gap-2">
+                      {post.user?.profilePictureUrl ? (
+                        <img
+                          src={optimizeImage(post.user.profilePictureUrl)}
+                          alt={userName}
+                          className="h-8 w-8 rounded-full object-cover border border-white/10 cursor-pointer"
+                          onClick={() => setActiveLightboxImage(post.user.profilePictureUrl)}
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-cesar-cyan">
+                          <User className="h-4 w-4" />
+                        </div>
+                      )}
+                      <span className="font-semibold text-sm text-white">
+                        {userName}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
                     {imageUrl ? (
                       <img
@@ -302,12 +325,6 @@ function PostsPage() {
                             {Number(post.price || 0).toLocaleString()} ج.م
                           </span>
                         </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-cesar-gray">اسم المستخدم</span>
-                          <span className="font-semibold text-white">
-                            {userName}
-                          </span>
-                        </div>
                       </div>
 
                       <div className="flex gap-2 w-full">
@@ -357,6 +374,28 @@ function PostsPage() {
               </button>
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {/* ── Image Lightbox Modal ── */}
+      {activeLightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm cursor-pointer"
+          onClick={() => setActiveLightboxImage(null)}
+        >
+          <button
+            type="button"
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-50 p-2 bg-black/40 rounded-full transition duration-200"
+            onClick={() => setActiveLightboxImage(null)}
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <img
+            src={optimizeImage(activeLightboxImage)}
+            alt="معاينة الصورة بالحجم الكامل"
+            className="max-h-[90vh] max-w-full object-contain rounded-lg shadow-2xl transition-transform duration-300"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </section>

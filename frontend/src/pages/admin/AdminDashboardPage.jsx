@@ -37,6 +37,7 @@ function AdminDashboardPage() {
   const [selectedPostToReject, setSelectedPostToReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isRejecting, setIsRejecting] = useState(false);
+  const [editedDescriptions, setEditedDescriptions] = useState({});
 
   // ── Users State ──
   const [users, setUsers] = useState([]);
@@ -116,7 +117,8 @@ function AdminDashboardPage() {
   const handleApprove = async (postId) => {
     try {
       setActionLoadingId(postId);
-      await api.put(`/posts/${postId}/status`, { status: "approved" });
+      const description = editedDescriptions[postId] !== undefined ? editedDescriptions[postId] : posts.find(p => p._id === postId)?.description;
+      await api.put(`/posts/${postId}/status`, { status: "approved", description });
       removePostFromState(postId);
       toast.success("تمت الموافقة على المنشور بنجاح.");
     } catch (requestError) {
@@ -555,7 +557,15 @@ function AdminDashboardPage() {
                             <MessageCircle className="h-4 w-4" />
                             تواصل عبر واتساب
                           </a>
-                          <p className="line-clamp-3 text-sm leading-6 text-cesar-gray">{post.description}</p>
+                          <div className="space-y-1 text-right">
+                            <span className="text-[10px] text-cesar-gray block font-medium">تعديل وصف الإعلان قبل الموافقة:</span>
+                            <textarea
+                              value={editedDescriptions[post._id] !== undefined ? editedDescriptions[post._id] : post.description}
+                              onChange={(e) => setEditedDescriptions(prev => ({ ...prev, [post._id]: e.target.value }))}
+                              className="w-full bg-black/40 border border-white/5 focus:border-cesar-cyan/30 rounded-xl p-2.5 text-xs text-white outline-none resize-none leading-relaxed min-h-[70px]"
+                              placeholder="عدل وصف الإعلان هنا..."
+                            />
+                          </div>
                         </div>
 
                         <div className="mt-4 flex flex-col gap-3">
