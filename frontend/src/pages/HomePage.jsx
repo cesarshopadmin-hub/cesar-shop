@@ -457,7 +457,7 @@ function HomePage() {
           onClick={() => setIsVideoModalOpen(false)}
         >
           <div
-            className="relative w-full max-w-4xl aspect-video rounded-xl overflow-hidden border border-cesar-cyan shadow-[0_0_30px_rgba(0,240,255,0.3)] bg-cesar-dark"
+            className="relative w-full max-w-sm aspect-[9/16] rounded-xl overflow-hidden border border-cesar-cyan shadow-[0_0_30px_rgba(0,240,255,0.3)] bg-cesar-dark"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -471,7 +471,7 @@ function HomePage() {
 
             <iframe
               className="w-full h-full"
-              src="https://www.youtube.com/embed/NnY4xALe6_I"
+              src="https://www.youtube.com/embed/S6GQD0fg1fM"
               title="How to use the platform"
               allow="autoplay; encrypted-media"
               allowFullScreen
