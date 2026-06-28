@@ -45,11 +45,21 @@ const createPost = asyncHandler(async (req, res) => {
 });
 
 const getApprovedPosts = asyncHandler(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.max(1, parseInt(req.query.limit, 10) || 12);
+  const skip = (page - 1) * limit;
+
+  const total = await Post.countDocuments({ status: "approved" });
+
   const posts = await Post.find({ status: "approved" })
     .populate("user", "name profilePictureUrl")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
 
-  res.json(posts);
+  const hasMore = total > page * limit;
+
+  res.json({ posts, hasMore });
 });
 
 const getMyPosts = asyncHandler(async (req, res) => {
