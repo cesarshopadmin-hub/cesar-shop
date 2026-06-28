@@ -30,11 +30,14 @@ function PostsPage() {
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [postToDelete, setPostToDelete] = useState(null);
   const [activeLightboxImage, setActiveLightboxImage] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   const deletePost = (postId) => {
     setPostToDelete(postId);
@@ -58,13 +61,21 @@ function PostsPage() {
 
     const fetchPosts = async () => {
       try {
-        setLoading(true);
+        if (page === 1) {
+          setLoading(true);
+        } else {
+          setLoadingMore(true);
+        }
         setError("");
 
-        const response = await api.get("/posts");
+        const response = await api.get(`/posts?page=${page}&limit=12`);
 
         if (isMounted) {
-          setPosts(Array.isArray(response.data) ? response.data : []);
+          const newPosts = response.data && Array.isArray(response.data.posts) ? response.data.posts : [];
+          const serverHasMore = response.data && typeof response.data.hasMore === 'boolean' ? response.data.hasMore : false;
+
+          setPosts((prevPosts) => (page === 1 ? newPosts : [...prevPosts, ...newPosts]));
+          setHasMore(serverHasMore);
         }
       } catch (requestError) {
         if (isMounted) {
@@ -76,6 +87,7 @@ function PostsPage() {
       } finally {
         if (isMounted) {
           setLoading(false);
+          setLoadingMore(false);
         }
       }
     };
@@ -85,7 +97,11 @@ function PostsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [page]);
+
+  const handleLoadMore = () => {
+    setPage((prevPage) => prevPage + 1);
+  };
 
   const filteredPosts = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery);
@@ -342,6 +358,24 @@ function PostsPage() {
               );
             })}
           </motion.div>
+        )}
+
+        {filteredPosts.length > 0 && hasMore && !loading && !loadingMore && (
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={handleLoadMore}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-cesar-cyan/40 bg-cesar-cyan/10 px-8 py-3.5 font-bold text-cesar-cyan transition duration-300 hover:bg-cesar-cyan/20 hover:shadow-neon-cyan text-base cursor-pointer"
+            >
+              عرض المزيد
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {loadingMore && (
+          <div className="mt-8 flex justify-center text-cesar-cyan">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
         )}
       </div>
 
