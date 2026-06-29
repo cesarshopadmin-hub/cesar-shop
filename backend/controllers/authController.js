@@ -212,6 +212,10 @@ const updateProfilePicture = asyncHandler(async (req, res) => {
       const result = await cloudinary.uploader.upload(dataURI, {
         folder: "profiles",
         resource_type: "auto",
+        transformation: [
+          { width: 800, crop: "limit" },
+          { quality: "auto", fetch_format: "auto" },
+        ],
       });
 
       user.profilePictureUrl = result.secure_url;

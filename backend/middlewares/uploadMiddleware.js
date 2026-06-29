@@ -18,6 +18,10 @@ export const uploadToCloudinary = (fileBuffer, folder, resourceType = "auto") =>
       {
         folder: folder,
         resource_type: resourceType,
+        transformation: [
+          { width: 800, crop: "limit" },
+          { quality: "auto", fetch_format: "auto" },
+        ],
       },
       (error, result) => {
         if (error) {
@@ -33,7 +37,7 @@ export const uploadToCloudinary = (fileBuffer, folder, resourceType = "auto") =>
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // Limit file uploads to 20MB
+  limits: { fileSize: 2 * 1024 * 1024 }, // Limit file uploads to 2MB (2 * 1024 * 1024 bytes)
 });
 
 export default upload;
