@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -9,11 +10,13 @@ import {
   FaTiktok,
   FaLink,
 } from "react-icons/fa";
-import { MonitorPlay, RefreshCw, Sparkles, Play, X } from "lucide-react";
+import { MonitorPlay, RefreshCw, Sparkles, Play, X, Edit } from "lucide-react";
 import api from "../Services/api.js";
 import useDocumentTitle from "../hooks/useDocumentTitle.js";
 // import ParticleBackground from "../components/layout/ParticleBackground.jsx";
 import CesarLogo from "../components/CesarLogo.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { toast } from "react-toastify";
 
 const platformIconMap = {
   whatsapp: FaWhatsapp,
@@ -48,13 +51,117 @@ function HomePage() {
   const { t, i18n } = useTranslation();
   useDocumentTitle(t("nav.logo") + " | " + t("nav.home"));
 
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryToken, setRetryToken] = useState(0);
   const [socialLinks, setSocialLinks] = useState([]);
   const [alertMessage, setAlertMessage] = useState("");
   const [adminNumbers, setAdminNumbers] = useState([]);
+  const [videoLink, setVideoLink] = useState("https://www.youtube.com/embed/S6GQD0fg1fM");
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editUrl, setEditUrl] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Reset editing mode when modal is opened or closed
+  useEffect(() => {
+    if (!isVideoModalOpen) {
+      setIsEditing(false);
+    }
+  }, [isVideoModalOpen]);
+
+  // Utility function to convert standard YouTube/TikTok watch URLs into embeddable URLs
+  const getEmbedUrl = (url) => {
+    if (!url) return "";
+    let cleanUrl = url.trim();
+    if (!/^https?:\/\//i.test(cleanUrl)) {
+      cleanUrl = "https://" + cleanUrl;
+    }
+
+    try {
+      const parsed = new URL(cleanUrl);
+
+      // YouTube
+      if (parsed.hostname.includes("youtube.com") || parsed.hostname.includes("youtu.be")) {
+        if (parsed.pathname.includes("/embed/")) {
+          return url; // already an embed link, return raw url as requested
+        }
+
+        if (parsed.pathname === "/watch") {
+          const v = parsed.searchParams.get("v");
+          if (v) return `https://www.youtube.com/embed/${v}`;
+        }
+
+        if (parsed.pathname.startsWith("/shorts/")) {
+          const parts = parsed.pathname.split("/");
+          const id = parts[2];
+          if (id) return `https://www.youtube.com/embed/${id}`;
+        }
+
+        if (parsed.hostname.includes("youtu.be")) {
+          const id = parsed.pathname.slice(1);
+          if (id) return `https://www.youtube.com/embed/${id}`;
+        }
+      }
+
+      // TikTok
+      if (parsed.hostname.includes("tiktok.com")) {
+        if (parsed.pathname.includes("/embed/v2/")) {
+          return url; // already an embed link
+        }
+
+        const match = parsed.pathname.match(/\/video\/(\d+)/);
+        if (match && match[1]) {
+          return `https://www.tiktok.com/embed/v2/${match[1]}`;
+        }
+      }
+    } catch (e) {
+      // Fallback
+    }
+
+    // Secondary fallback matching on raw URL
+    if (url.includes("youtube.com/watch")) {
+      const match = url.match(/[?&]v=([^&#]+)/);
+      if (match && match[1]) {
+        return `https://www.youtube.com/embed/${match[1]}`;
+      }
+    }
+
+    const tiktokMatch = url.match(/video\/(\d+)/);
+    if (url.includes("tiktok.com") && tiktokMatch && tiktokMatch[1]) {
+      return `https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`;
+    }
+
+    return url;
+  };
+
+  const handleSaveVideoLink = async (e) => {
+    e.preventDefault();
+    if (!editUrl.trim()) {
+      toast.error("يرجى إدخال رابط صالح");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const response = await api.put("/settings", { videoLink: editUrl.trim() });
+      const updatedSettings = response.data || {};
+      if (updatedSettings.videoLink) {
+        setVideoLink(updatedSettings.videoLink);
+      } else {
+        setVideoLink(editUrl.trim());
+      }
+      toast.success("تم تحديث رابط الفيديو بنجاح");
+      setIsEditing(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "حدث خطأ أثناء تحديث رابط الفيديو");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -84,6 +191,9 @@ function HomePage() {
             ? settings.adminContactNumbers
             : [],
         );
+        if (settings.videoLink) {
+          setVideoLink(settings.videoLink);
+        }
       } catch {
         if (!isMounted) {
           return;
@@ -451,33 +561,98 @@ function HomePage() {
       </div>
 
       {/* Video Modal */}
-      {isVideoModalOpen && (
+      {isVideoModalOpen && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
           onClick={() => setIsVideoModalOpen(false)}
         >
           <div
             className="relative w-full max-w-sm aspect-[9/16] rounded-xl overflow-hidden border border-cesar-cyan shadow-[0_0_30px_rgba(0,240,255,0.3)] bg-cesar-dark"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
-            <button
-              onClick={() => setIsVideoModalOpen(false)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 border border-white/10 text-white hover:text-cesar-cyan hover:border-cesar-cyan/50 hover:bg-black/85 transition duration-200"
-              aria-label="Close modal"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            {isEditing ? (
+              <form
+                onSubmit={handleSaveVideoLink}
+                className="flex flex-col h-full justify-between p-6 bg-cesar-dark text-white font-cairo"
+              >
+                <div className="flex flex-col gap-6 pt-12">
+                  <h3 className="text-xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-cesar-cyan to-white pb-2 border-b border-white/10">
+                    تعديل رابط الفيديو
+                  </h3>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-cesar-gray">
+                      رابط يوتيوب أو تيك توك
+                    </label>
+                    <input
+                      type="text"
+                      value={editUrl}
+                      onChange={(e) => setEditUrl(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full rounded-xl border border-white/10 bg-black/45 p-3.5 text-sm text-white placeholder-white/30 focus:border-cesar-cyan focus:outline-none focus:ring-1 focus:ring-cesar-cyan transition duration-200"
+                      required
+                    />
+                  </div>
+                </div>
 
-            <iframe
-              className="w-full h-full"
-              src="https://www.youtube.com/embed/S6GQD0fg1fM"
-              title="How to use the platform"
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-            />
+                <div className="flex flex-col gap-3 pb-6">
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="w-full flex items-center justify-center gap-2 rounded-full bg-cesar-cyan py-3 text-sm font-bold text-cesar-darker transition duration-300 hover:bg-white hover:shadow-neon-cyan shadow-[0_0_15px_rgba(0,240,255,0.4)] disabled:opacity-50"
+                  >
+                    {isSaving ? "جاري الحفظ..." : "حفظ التغييرات"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditUrl(videoLink);
+                    }}
+                    disabled={isSaving}
+                    className="w-full flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 py-3 text-sm font-bold text-white transition duration-300 hover:bg-white/10"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                {/* Close Button */}
+                <button
+                  onClick={() => setIsVideoModalOpen(false)}
+                  className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/60 border border-white/10 text-white hover:text-cesar-cyan hover:border-cesar-cyan/50 hover:bg-black/85 transition duration-200"
+                  aria-label="Close modal"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
+                {/* Edit Button */}
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setIsEditing(true);
+                      setEditUrl(videoLink);
+                    }}
+                    className="absolute top-4 left-4 z-20 p-2 rounded-full bg-black/60 border border-white/10 text-white hover:text-cesar-cyan hover:border-cesar-cyan/50 hover:bg-black/85 transition duration-200"
+                    aria-label="Edit video"
+                    title="تعديل الفيديو"
+                  >
+                    <Edit className="h-5 w-5" />
+                  </button>
+                )}
+
+                <iframe
+                  className="w-full h-full"
+                  src={getEmbedUrl(videoLink)}
+                  title="How to use the platform"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                />
+              </>
+            )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );
