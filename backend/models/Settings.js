@@ -53,6 +53,10 @@ const settingsSchema = new mongoose.Schema(
       trim: true,
       default: "احذر النصب! تعامل فقط من خلال أرقامنا الرسمية.",
     },
+    videoLink: {
+      type: String,
+      default: "https://www.youtube.com/embed/S6GQD0fg1fM",
+    },
   },
   {
     timestamps: true,
