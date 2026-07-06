@@ -35,7 +35,7 @@ function MainLayout() {
             
             <div className="flex items-center gap-2">
               <Link to="/" className="flex items-center gap-3 text-xl font-black tracking-wide text-cesar-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">
-                <CesarLogo className="w-14 h-14" />
+                <CesarLogo className="w-16 h-16" />
                 <span>{t("nav.logo")}</span>
               </Link>
             </div>
