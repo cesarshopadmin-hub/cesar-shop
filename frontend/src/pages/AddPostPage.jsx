@@ -331,6 +331,12 @@ function AddPostPage() {
                   <option value="بيس فيفا و كلاش">
                     بيس فيفا و كلاش
                   </option>
+                  <option value="بلود سترايك">
+                    بلود سترايك
+                  </option>
+                  <option value="روبلوكس">
+                    روبلوكس
+                  </option>
                   <option value="حسابات سوشيال ميديا">
                     حسابات سوشيال ميديا
                   </option>
