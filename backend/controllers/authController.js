@@ -24,81 +24,90 @@ const getPublicIdFromUrl = (url) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, identifier, password, confirmPassword, phoneNumber } = req.body;
+  try {
+    const { name, identifier, password, confirmPassword, phoneNumber } = req.body;
 
-  if (!name || !identifier || !password || !confirmPassword) {
-    res.status(400);
-    throw new Error("يرجى ملء جميع الحقول المطلوبة");
-  }
-
-  if (!phoneNumber || !phoneNumber.trim()) {
-    res.status(400);
-    throw new Error("رقم الهاتف مطلوب للتسجيل");
-  }
-
-  if (password !== confirmPassword) {
-    res.status(400);
-    throw new Error("كلمات المرور غير متطابقة");
-  }
-
-  const trimmedIdentifier = identifier.trim();
-  const isEmail = trimmedIdentifier.includes("@");
-  const lowercaseIdentifier = trimmedIdentifier.toLowerCase();
-  const normalizedIdentifier = isEmail
-    ? lowercaseIdentifier
-    : trimmedIdentifier.replace(/[\s\-\(\)]/g, "");
-
-  const normalizedPhone = phoneNumber.trim().replace(/[\s\-\(\)]/g, "");
-
-  const existingUser = await User.findOne({
-    $or: [
-      { identifier: normalizedIdentifier },
-      { email: isEmail ? normalizedIdentifier : "undefined_dummy_email" },
-      { phoneNumber: normalizedPhone }
-    ]
-  });
-
-  if (existingUser) {
-    res.status(400);
-    const isEmailConflict = isEmail && (
-      (existingUser.email && existingUser.email.toLowerCase() === normalizedIdentifier.toLowerCase()) || 
-      (existingUser.identifier && existingUser.identifier.toLowerCase() === normalizedIdentifier.toLowerCase())
-    );
-    const isPhoneConflict = existingUser.phoneNumber === normalizedPhone || existingUser.identifier === normalizedPhone;
-
-    if (isEmailConflict && isPhoneConflict) {
-      throw new Error("البريد الإلكتروني ورقم الهاتف مسجلان بالفعل في النظام. يرجى تسجيل الدخول.");
+    if (!name || !identifier || !password || !confirmPassword) {
+      res.status(400);
+      throw new Error("يرجى ملء جميع الحقول المطلوبة");
     }
-    if (isEmailConflict) {
-      throw new Error("البريد الإلكتروني هذا مسجل بالفعل في النظام. يرجى استخدام بريد آخر أو تسجيل الدخول.");
+
+    if (!phoneNumber || !phoneNumber.trim()) {
+      res.status(400);
+      throw new Error("رقم الهاتف مطلوب للتسجيل");
     }
-    if (isPhoneConflict) {
-      throw new Error("رقم الهاتف هذا مسجل بالفعل في النظام. يرجى استخدام رقم آخر أو تسجيل الدخول.");
+
+    if (password !== confirmPassword) {
+      res.status(400);
+      throw new Error("كلمات المرور غير متطابقة");
     }
-    throw new Error("البريد الإلكتروني أو رقم الهاتف مسجل بالفعل في النظام.");
+
+    const trimmedIdentifier = identifier.trim();
+    const isEmail = trimmedIdentifier.includes("@");
+    const lowercaseIdentifier = trimmedIdentifier.toLowerCase();
+    const normalizedIdentifier = isEmail
+      ? lowercaseIdentifier
+      : trimmedIdentifier.replace(/[\s\-\(\)]/g, "");
+
+    const normalizedPhone = phoneNumber.trim().replace(/[\s\-\(\)]/g, "");
+
+    const existingUser = await User.findOne({
+      $or: [
+        { identifier: normalizedIdentifier },
+        { email: isEmail ? normalizedIdentifier : "undefined_dummy_email" },
+        { phoneNumber: normalizedPhone }
+      ]
+    });
+
+    if (existingUser) {
+      res.status(400);
+      const isEmailConflict = isEmail && (
+        (existingUser.email && existingUser.email.toLowerCase() === normalizedIdentifier.toLowerCase()) || 
+        (existingUser.identifier && existingUser.identifier.toLowerCase() === normalizedIdentifier.toLowerCase())
+      );
+      const isPhoneConflict = existingUser.phoneNumber === normalizedPhone || existingUser.identifier === normalizedPhone;
+
+      if (isEmailConflict && isPhoneConflict) {
+        throw new Error("البريد الإلكتروني ورقم الهاتف مسجلان بالفعل في النظام. يرجى تسجيل الدخول.");
+      }
+      if (isEmailConflict) {
+        throw new Error("البريد الإلكتروني هذا مسجل بالفعل في النظام. يرجى استخدام بريد آخر أو تسجيل الدخول.");
+      }
+      if (isPhoneConflict) {
+        throw new Error("رقم الهاتف هذا مسجل بالفعل في النظام. يرجى استخدام رقم آخر أو تسجيل الدخول.");
+      }
+      throw new Error("البريد الإلكتروني أو رقم الهاتف مسجل بالفعل في النظام.");
+    }
+
+    const userData = {
+      name,
+      identifier: normalizedIdentifier,
+      password,
+      phoneNumber: normalizedPhone,
+    };
+
+    if (isEmail) {
+      userData.email = normalizedIdentifier;
+    }
+
+    const user = await User.create(userData);
+
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: "رقم الهاتف أو البريد الإلكتروني مسجل بالفعل، يرجى تسجيل الدخول.",
+      });
+    }
+    throw error;
   }
-
-  const userData = {
-    name,
-    identifier: normalizedIdentifier,
-    password,
-    phoneNumber: normalizedPhone,
-  };
-
-  if (isEmail) {
-    userData.email = normalizedIdentifier;
-  }
-
-  const user = await User.create(userData);
-
-  res.status(201).json({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    phoneNumber: user.phoneNumber,
-    role: user.role,
-    token: generateToken(user._id),
-  });
 });
 
 const loginUser = asyncHandler(async (req, res) => {
