@@ -49,9 +49,32 @@ const getApprovedPosts = asyncHandler(async (req, res) => {
   const limit = Math.max(1, parseInt(req.query.limit, 10) || 12);
   const skip = (page - 1) * limit;
 
-  const total = await Post.countDocuments({ status: "approved" });
+  // Initialize a base query object that only fetches posts with status: "approved"
+  const query = { status: "approved" };
 
-  const posts = await Post.find({ status: "approved" })
+  // Category Filtration: If req.query.category is provided (and is not "الكل", "all", or an empty string), add it to the query object.
+  // Crucially, use a Regex to prevent trailing space issues in Arabic.
+  if (
+    req.query.category &&
+    req.query.category !== "الكل" &&
+    req.query.category !== "all" &&
+    req.query.category.trim() !== ""
+  ) {
+    query.category = { $regex: new RegExp(req.query.category.trim(), "i") };
+  }
+
+  // Keyword Search: If req.query.keyword is provided, safely add an $or array to the query object to search within both the title and description fields.
+  if (req.query.keyword && req.query.keyword.trim() !== "") {
+    const keywordRegex = { $regex: new RegExp(req.query.keyword.trim(), "i") };
+    query.$or = [
+      { title: keywordRegex },
+      { description: keywordRegex },
+    ];
+  }
+
+  const total = await Post.countDocuments(query);
+
+  const posts = await Post.find(query)
     .populate("user", "name profilePictureUrl")
     .sort({ createdAt: -1 })
     .skip(skip)
