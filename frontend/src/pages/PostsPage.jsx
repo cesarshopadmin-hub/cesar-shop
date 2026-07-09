@@ -58,6 +58,24 @@ function PostsPage() {
     }
   };
 
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  // Debounce the search query to avoid rapid API requests
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 450);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchQuery, selectedCategory]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -70,7 +88,15 @@ function PostsPage() {
         }
         setError("");
 
-        const response = await api.get(`/posts?page=${page}&limit=12`);
+        let url = `/posts?page=${page}&limit=12`;
+        if (selectedCategory && selectedCategory !== "all" && selectedCategory !== "الكل") {
+          url += `&category=${encodeURIComponent(selectedCategory)}`;
+        }
+        if (debouncedSearchQuery && debouncedSearchQuery.trim() !== "") {
+          url += `&keyword=${encodeURIComponent(debouncedSearchQuery.trim())}`;
+        }
+
+        const response = await api.get(url);
 
         if (isMounted) {
           const newPosts = response.data && Array.isArray(response.data.posts) ? response.data.posts : [];
@@ -99,19 +125,20 @@ function PostsPage() {
     return () => {
       isMounted = false;
     };
-  }, [page]);
+  }, [page, debouncedSearchQuery, selectedCategory]);
 
   const handleLoadMore = () => {
     setPage((prevPage) => prevPage + 1);
   };
 
-  const filteredPosts = useMemo(() => {
+ const filteredPosts = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery);
 
     return posts.filter((post) => {
       const matchesSearch =
         normalizedQuery.length === 0 ||
-        normalizeText(post.description || "").includes(normalizedQuery);
+        normalizeText(post.description || "").includes(normalizedQuery) ||
+        normalizeText(post.title || "").includes(normalizedQuery);
 
       return matchesSearch && matchesCategory(post.category, selectedCategory);
     });
