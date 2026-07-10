@@ -161,13 +161,14 @@ const updatePost = asyncHandler(async (req, res) => {
     throw new Error("غير مصرح لك بتعديل هذا الإعلان إلا إذا كان معلقاً");
   }
 
+  // description, price, category — updatable by both admin and owner
   post.description = description !== undefined ? description : post.description;
+  post.price = price !== undefined ? price : post.price;
+  post.category = category !== undefined ? category : post.category;
 
   if (isOwner) {
     post.whatsappNumber = whatsappNumber !== undefined ? whatsappNumber : post.whatsappNumber;
     post.countryCode = countryCode !== undefined ? countryCode : post.countryCode;
-    post.category = category !== undefined ? category : post.category;
-    post.price = price !== undefined ? price : post.price;
 
     if (req.files && req.files.images && req.files.images.length > 0) {
       const uploadPromises = req.files.images.map((file) =>

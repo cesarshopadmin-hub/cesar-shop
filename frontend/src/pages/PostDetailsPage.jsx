@@ -38,10 +38,22 @@ const PostDetailsPage = () => {
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
-  // Admin Edit Description States
+  // Admin Edit Post States
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [tempDesc, setTempDesc] = useState("");
+  const [tempPrice, setTempPrice] = useState("");
+  const [tempCategory, setTempCategory] = useState("");
   const [updatingDesc, setUpdatingDesc] = useState(false);
+
+  const CATEGORIES = [
+    "فري فاير",
+    "ببجي",
+    "بيس فيفا و كلاش",
+    "بلود سترايك",
+    "روبلوكس",
+    "حسابات سوشيال ميديا",
+    "اخري",
+  ];
 
   const handleSaveDescription = async () => {
     if (!tempDesc.trim()) {
@@ -52,15 +64,28 @@ const PostDetailsPage = () => {
       toast.error("يجب أن يكون وصف الإعلان 10 أحرف على الأقل");
       return;
     }
+    if (!tempPrice || isNaN(tempPrice) || Number(tempPrice) <= 0) {
+      toast.error("يرجى إدخال سعر صحيح");
+      return;
+    }
     try {
       setUpdatingDesc(true);
-      const response = await api.put(`/posts/${post._id}`, { description: tempDesc });
-      setPost((prev) => ({ ...prev, description: response.data.description }));
-      toast.success("تم تحديث وصف الإعلان بنجاح");
+      const response = await api.put(`/posts/${post._id}`, {
+        description: tempDesc,
+        price: Number(tempPrice),
+        category: tempCategory,
+      });
+      setPost((prev) => ({
+        ...prev,
+        description: response.data.description,
+        price: response.data.price,
+        category: response.data.category,
+      }));
+      toast.success("تم تحديث الإعلان بنجاح");
       setIsEditingDesc(false);
     } catch (err) {
-      console.error("Error updating post description:", err);
-      toast.error(err.response?.data?.message || "حدث خطأ أثناء تحديث الوصف.");
+      console.error("Error updating post:", err);
+      toast.error(err.response?.data?.message || "حدث خطأ أثناء تحديث الإعلان.");
     } finally {
       setUpdatingDesc(false);
     }
@@ -344,13 +369,45 @@ const PostDetailsPage = () => {
             <div className="prose prose-invert max-w-none text-gray-300 mb-8 bg-black/20 p-6 rounded-xl border border-white/5 text-right">
               {isEditingDesc ? (
                 <div className="space-y-4 font-cairo">
-                  <textarea
-                    value={tempDesc}
-                    onChange={(e) => setTempDesc(e.target.value)}
-                    className="w-full min-h-[120px] bg-cesar-darker border border-white/10 rounded-xl p-4 text-white placeholder-slate-500 focus:outline-none focus:border-cesar-cyan/50 text-sm leading-relaxed text-right font-cairo"
-                    placeholder="عدل وصف الإعلان هنا..."
-                    disabled={updatingDesc}
-                  />
+                  {/* Price */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-cesar-gray">السعر (جنيه)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={tempPrice}
+                      onChange={(e) => setTempPrice(e.target.value)}
+                      className="w-full bg-cesar-darker border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-cesar-cyan/50 text-sm font-cairo"
+                      placeholder="أدخل السعر..."
+                      disabled={updatingDesc}
+                      dir="ltr"
+                    />
+                  </div>
+                  {/* Category */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-cesar-gray">الفئة</label>
+                    <select
+                      value={tempCategory}
+                      onChange={(e) => setTempCategory(e.target.value)}
+                      className="w-full bg-cesar-darker border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-cesar-cyan/50 text-sm font-cairo"
+                      disabled={updatingDesc}
+                    >
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* Description */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-cesar-gray">الوصف</label>
+                    <textarea
+                      value={tempDesc}
+                      onChange={(e) => setTempDesc(e.target.value)}
+                      className="w-full min-h-[120px] bg-cesar-darker border border-white/10 rounded-xl p-4 text-white placeholder-slate-500 focus:outline-none focus:border-cesar-cyan/50 text-sm leading-relaxed text-right font-cairo"
+                      placeholder="عدل وصف الإعلان هنا..."
+                      disabled={updatingDesc}
+                    />
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <button
                       type="button"
@@ -366,7 +423,7 @@ const PostDetailsPage = () => {
                       disabled={updatingDesc}
                       className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-cesar-cyan/20 border border-cesar-cyan/40 hover:bg-cesar-cyan/30 hover:shadow-neon-cyan transition duration-300 disabled:opacity-50"
                     >
-                      {updatingDesc ? "جاري الحفظ..." : "حفظ التعديل"}
+                      {updatingDesc ? "جاري الحفظ..." : "حفظ التعديلات"}
                     </button>
                   </div>
                 </div>
@@ -381,11 +438,13 @@ const PostDetailsPage = () => {
                         type="button"
                         onClick={() => {
                           setTempDesc(post.description);
+                          setTempPrice(post.price);
+                          setTempCategory(post.category);
                           setIsEditingDesc(true);
                         }}
                         className="bg-cesar-cyan/10 border border-cesar-cyan/30 hover:bg-cesar-cyan/20 text-cesar-cyan text-xs font-bold px-3 py-1.5 rounded-lg transition duration-200"
                       >
-                        تعديل الوصف (أدمن)
+                        تعديل الإعلان (أدمن)
                       </button>
                     </div>
                   )}
