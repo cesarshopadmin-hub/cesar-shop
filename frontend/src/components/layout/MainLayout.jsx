@@ -23,8 +23,10 @@ function MainLayout() {
     navigate("/login");
   };
 
+  const isChatRoute = location.pathname.startsWith("/chat/");
+
   return (
-    <div className="min-h-screen bg-cesar-darker text-white font-cairo pb-16 md:pb-0 relative"dir="rtl">
+    <div className={`min-h-screen bg-cesar-darker text-white font-cairo ${isChatRoute ? "" : "pb-16"} md:pb-0 relative`} dir="rtl">
     
     {/* <ParticleBackground />  */}
 
@@ -77,7 +79,8 @@ function MainLayout() {
         <Outlet />
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-[#0a0f16]/95 backdrop-blur-lg">
+      {!isChatRoute && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-[#0a0f16]/95 backdrop-blur-lg">
         <div className="flex justify-around items-center h-16">
           
           <Link to="/" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
@@ -137,8 +140,9 @@ function MainLayout() {
 
         </div>
       </nav>
+      )}
 
-      <FloatingWarning />
+      {!isChatRoute && <FloatingWarning />}
     </div>
     </div>
   );

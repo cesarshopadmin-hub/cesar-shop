@@ -15,6 +15,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import EditPostPage from "./pages/EditPostPage.jsx";
 import PostsPage from "./pages/PostsPage.jsx";
 import PostDetailsPage from "./pages/PostDetailsPage.jsx";
+import ChatPage from "./pages/ChatPage.jsx";
 
 // Import Guards
 import GuestGuard from "./components/guards/GuestGuard.jsx";
@@ -39,7 +40,9 @@ function App() {
 
             {/* 🔴 Auth Routes (L-ly 3aml login bs) */}
             <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
+            <Route path="/profile/:id" element={<AuthGuard><ProfilePage /></AuthGuard>} />
             <Route path="/add-post" element={<AuthGuard><AddPostPage /></AuthGuard>} />
+            <Route path="/chat/:id" element={<AuthGuard><ChatPage /></AuthGuard>} />
 
             {/* 👑 Admin Routes (Ll-moderen bs) */}
             <Route 

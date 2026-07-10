@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   CheckCircle,
@@ -46,6 +46,8 @@ const statusMeta = {
 function ProfilePage() {
   const { t, i18n } = useTranslation();
   const { user, updateUser } = useAuth();
+  const { id: userId } = useParams();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -54,14 +56,58 @@ function ProfilePage() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const currentUser = user?.name ? user : user?.user;
-  const profilePictureUrl = currentUser?.profilePictureUrl;
+  const isOwnProfile = !userId || userId === currentUser?._id;
+  const isAdmin = currentUser?.role === "admin";
+
+  const [profileUser, setProfileUser] = useState(isOwnProfile ? currentUser : null);
+  const [fetchingUser, setFetchingUser] = useState(!isOwnProfile);
+
+  const profilePictureUrl = profileUser?.profilePictureUrl;
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
-    name: currentUser?.name || "",
-    phoneNumber: currentUser?.phoneNumber || "",
+    name: profileUser?.name || "",
+    phoneNumber: profileUser?.phoneNumber || "",
   });
+
+  useEffect(() => {
+    if (isOwnProfile) {
+      setProfileUser(currentUser);
+      setFetchingUser(false);
+    } else {
+      let isMounted = true;
+      const fetchUserProfile = async () => {
+        try {
+          setFetchingUser(true);
+          const response = await api.get(`/users/${userId}`);
+          if (isMounted) {
+            setProfileUser(response.data);
+          }
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
+          if (isMounted) {
+            setError(err.response?.data?.message || "تعذر تحميل بيانات المستخدم.");
+          }
+        } finally {
+          if (isMounted) {
+            setFetchingUser(false);
+          }
+        }
+      };
+      fetchUserProfile();
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [userId, isOwnProfile, currentUser]);
+
+  useEffect(() => {
+    setFormData({
+      name: profileUser?.name || "",
+      phoneNumber: profileUser?.phoneNumber || "",
+    });
+  }, [profileUser]);
 
   const handleDeletePost = async (postId) => {
     const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإعلان؟");
@@ -78,14 +124,28 @@ function ProfilePage() {
   };
 
   useEffect(() => {
+    if (fetchingUser || !profileUser?._id) return;
     let isMounted = true;
-    const fetchMyPosts = async () => {
+    const fetchPosts = async () => {
       try {
         setLoading(true);
         setError("");
-        const response = await api.get("/posts/my-posts");
-        if (isMounted) {
-          setPosts(Array.isArray(response.data) ? response.data : []);
+        if (isOwnProfile) {
+          const response = await api.get("/posts/my-posts");
+          if (isMounted) {
+            setPosts(Array.isArray(response.data) ? response.data : []);
+          }
+        } else {
+          const response = await api.get("/posts?page=1&limit=100");
+          if (isMounted) {
+            const allPosts = Array.isArray(response.data?.posts) ? response.data.posts : [];
+            const filteredPosts = allPosts.filter(
+              (p) =>
+                p.user?._id === profileUser?._id ||
+                p.user === profileUser?._id
+            );
+            setPosts(filteredPosts);
+          }
         }
       } catch (requestError) {
         if (isMounted) {
@@ -100,11 +160,11 @@ function ProfilePage() {
         }
       }
     };
-    fetchMyPosts();
+    fetchPosts();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isOwnProfile, profileUser?._id, fetchingUser]);
 
   const handleImageClick = () => {
     fileInputRef.current.click();
@@ -152,6 +212,17 @@ function ProfilePage() {
     }
   };
 
+  if (fetchingUser) {
+    return (
+      <div className="min-h-screen bg-cesar-darker font-cairo flex items-center justify-center text-white" dir={i18n.dir()}>
+        <div className="flex items-center gap-3 text-cesar-cyan">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="text-sm font-medium">جارٍ تحميل بيانات المستخدم الشخصية...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div dir={i18n.dir()} className="min-h-screen px-4 py-10 font-cairo">
       <motion.div
@@ -167,9 +238,9 @@ function ProfilePage() {
           <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-4 text-right w-full md:w-auto">
               <div
-                className="relative group cursor-pointer shrink-0"
-                onClick={handleImageClick}
-                title="تغيير الصورة الشخصية"
+                className={`relative group shrink-0 ${isOwnProfile ? "cursor-pointer" : ""}`}
+                onClick={isOwnProfile ? handleImageClick : undefined}
+                title={isOwnProfile ? "تغيير الصورة الشخصية" : undefined}
               >
                 {uploadingImage ? (
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan">
@@ -179,59 +250,65 @@ function ProfilePage() {
                   <div className="relative h-16 w-16">
                     <img
                       src={optimizeImage(profilePictureUrl)}
-                      alt={currentUser?.name}
+                      alt={profileUser?.name}
                       className="h-full w-full rounded-2xl object-cover border border-cesar-cyan/30 group-hover:border-cesar-cyan transition shadow-neon-cyan"
                     />
-                    <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                      <Camera className="h-6 w-6 text-white" />
-                    </div>
+                    {isOwnProfile && (
+                      <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <Camera className="h-6 w-6 text-white" />
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan group-hover:border-cesar-cyan transition">
+                  <div className={`flex h-16 w-16 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan ${isOwnProfile ? "group-hover:border-cesar-cyan" : ""} transition`}>
                     <Camera className="h-7 w-7" />
                   </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
+                {isOwnProfile && (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                )}
               </div>
 
               <div className="space-y-2 flex-1">
                 <div className="flex items-center justify-between w-full">
                   <p className="text-sm text-cesar-gray">الملف الشخصي</p>
-                  {!isEditing ? (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="text-cesar-cyan hover:text-white transition flex items-center gap-1 text-sm"
-                    >
-                      <Edit2 className="h-4 w-4" /> تعديل
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2">
+                  {isOwnProfile && (
+                    !isEditing ? (
                       <button
-                        onClick={handleUpdateProfile}
-                        disabled={isSaving}
-                        className="text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
+                        onClick={() => setIsEditing(true)}
+                        className="text-cesar-cyan hover:text-white transition flex items-center gap-1 text-sm"
                       >
-                        {isSaving ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}{" "}
-                        حفظ
+                        <Edit2 className="h-4 w-4" /> تعديل
                       </button>
-                      <button
-                        onClick={() => setIsEditing(false)}
-                        disabled={isSaving}
-                        className="text-red-400 hover:text-red-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
-                      >
-                        <X className="h-4 w-4" /> إلغاء
-                      </button>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleUpdateProfile}
+                          disabled={isSaving}
+                          className="text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
+                        >
+                          {isSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}{" "}
+                          حفظ
+                        </button>
+                        <button
+                          onClick={() => setIsEditing(false)}
+                          disabled={isSaving}
+                          className="text-red-400 hover:text-red-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
+                        >
+                          <X className="h-4 w-4" /> إلغاء
+                        </button>
+                      </div>
+                    )
                   )}
                 </div>
 
@@ -245,14 +322,26 @@ function ProfilePage() {
                     className="w-full max-w-xs bg-black/40 border border-white/10 text-white rounded-lg px-3 py-1 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan transition outline-none text-2xl font-bold"
                   />
                 ) : (
-                  <h1 className="text-3xl font-bold text-white">
-                    {currentUser?.name || "الزائر"}
-                  </h1>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-3xl font-bold text-white">
+                      {profileUser?.name || "الزائر"}
+                    </h1>
+                    {currentUser?._id !== profileUser?._id && (
+                      <button
+                        onClick={() => navigate(`/chat/${profileUser?._id}`)}
+                        className="bg-cesar-cyan/10 text-cesar-cyan border border-cesar-cyan/40 hover:bg-cesar-cyan/20 px-4 py-1.5 rounded-xl font-bold transition duration-300 flex items-center gap-2 text-sm"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        تواصل معي
+                      </button>
+                    )}
+                  </div>
                 )}
 
                 <p className="max-w-2xl text-sm leading-6 text-slate-300">
-                  تابع تفاصيل حسابك والمنشورات التي أرسلتها وحالتها الحالية من
-                  هنا.
+                  {isOwnProfile
+                    ? "تابع تفاصيل حسابك والمنشورات التي أرسلتها وحالتها الحالية من هنا."
+                    : "تصفح تفاصيل حساب البائع والمنشورات التي قام بنشرها من هنا."}
                 </p>
               </div>
             </div>
@@ -264,7 +353,9 @@ function ProfilePage() {
                   <span className="text-xs">البريد الإلكتروني</span>
                 </div>
                 <p className="truncate text-sm font-semibold text-white">
-                  {currentUser?.email || "غير متوفر"}
+                  {isOwnProfile || isAdmin
+                    ? profileUser?.email || "غير متوفر"
+                    : "••••••••@••••.•••"}
                 </p>
               </div>
               <div className="rounded-2xl border border-white/5 bg-black/30 px-4 py-3 text-right">
@@ -287,7 +378,9 @@ function ProfilePage() {
                     className="truncate text-sm font-semibold text-white"
                     dir="ltr"
                   >
-                    {currentUser?.phoneNumber || "غير متوفر"}
+                    {isOwnProfile || isAdmin
+                      ? profileUser?.phoneNumber || "غير متوفر"
+                      : "••••••••••"}
                   </p>
                 )}
               </div>
@@ -307,9 +400,13 @@ function ProfilePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3 text-right">
             <div>
-              <h2 className="text-2xl font-bold text-white">إعلاناتي</h2>
+              <h2 className="text-2xl font-bold text-white">
+                {isOwnProfile ? "إعلاناتي" : "إعلانات البائع"}
+              </h2>
               <p className="mt-1 text-sm text-cesar-gray">
-                عرض جميع الإعلانات التي قمت بإرسالها وحالتها في النظام.
+                {isOwnProfile
+                  ? "عرض جميع الإعلانات التي قمت بإرسالها وحالتها في النظام."
+                  : "عرض جميع الإعلانات التي قام البائع بنشرها وحالتها في النظام."}
               </p>
             </div>
           </div>

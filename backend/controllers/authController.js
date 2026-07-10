@@ -322,6 +322,19 @@ const toggleBlockUser = asyncHandler(async (req, res) => {
   });
 });
 
+const getUserProfileById = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id).select(
+    "name profilePictureUrl phoneNumber email role"
+  );
+
+  if (!user) {
+    res.status(404);
+    throw new Error("المستخدم غير موجود");
+  }
+
+  res.json(user);
+});
+
 export {
   registerUser,
   loginUser,
@@ -331,4 +344,6 @@ export {
   addAdmin,
   getAllUsers,
   toggleBlockUser,
+  getUserProfileById,
 };
+

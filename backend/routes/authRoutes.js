@@ -10,6 +10,7 @@ import {
   addAdmin,
   getAllUsers,
   toggleBlockUser,
+  getUserProfileById,
 } from "../controllers/authController.js";
 import { protect, admin } from "../middlewares/authMiddleware.js";
 
@@ -80,5 +81,8 @@ router.post("/add-admin", protect, admin, addAdmin);
 // Admin-only User management routes
 router.get("/users", protect, admin, getAllUsers);
 router.put("/users/:id/block", protect, admin, toggleBlockUser);
+
+// Public user profile fetching
+router.get("/:id", getUserProfileById);
 
 export default router;

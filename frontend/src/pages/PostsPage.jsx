@@ -266,23 +266,36 @@ function PostsPage() {
                   {/* Card Header (Social Media Style) */}
                   <div className="flex items-center p-3 border-b border-white/5 bg-black/20">
                     {/* User Info (Right side in RTL) */}
-                    <div className="flex items-center gap-2">
-                      {post.user?.profilePictureUrl ? (
-                        <img
-                          src={optimizeImage(post.user.profilePictureUrl)}
-                          alt={userName}
-                          className="h-8 w-8 rounded-full object-cover border border-white/10 cursor-pointer"
-                          onClick={() => setActiveLightboxImage(post.user.profilePictureUrl)}
-                        />
-                      ) : (
+                    {post.user ? (
+                      <Link
+                        to={`/profile/${post.user._id}`}
+                        className="flex items-center gap-2 hover:text-cesar-cyan transition-colors group"
+                      >
+                        {post.user.profilePictureUrl ? (
+                          <img
+                            src={optimizeImage(post.user.profilePictureUrl)}
+                            alt={userName}
+                            className="h-8 w-8 rounded-full object-cover border border-white/10 cursor-pointer group-hover:border-cesar-cyan/50 transition-colors"
+                          />
+                        ) : (
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-cesar-cyan group-hover:border-cesar-cyan/50 transition-colors">
+                            <User className="h-4 w-4" />
+                          </div>
+                        )}
+                        <span className="font-semibold text-sm text-white group-hover:text-cesar-cyan transition-colors">
+                          {userName}
+                        </span>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-2">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-cesar-cyan">
                           <User className="h-4 w-4" />
                         </div>
-                      )}
-                      <span className="font-semibold text-sm text-white">
-                        {userName}
-                      </span>
-                    </div>
+                        <span className="font-semibold text-sm text-white">
+                          {userName}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
