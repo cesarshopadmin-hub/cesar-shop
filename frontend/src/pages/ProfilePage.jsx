@@ -326,15 +326,6 @@ function ProfilePage() {
                     <h1 className="text-3xl font-bold text-white">
                       {profileUser?.name || "الزائر"}
                     </h1>
-                    {currentUser?._id !== profileUser?._id && (
-                      <button
-                        onClick={() => navigate(`/chat/${profileUser?._id}`)}
-                        className="bg-cesar-cyan/10 text-cesar-cyan border border-cesar-cyan/40 hover:bg-cesar-cyan/20 px-4 py-1.5 rounded-xl font-bold transition duration-300 flex items-center gap-2 text-sm"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        تواصل معي
-                      </button>
-                    )}
                   </div>
                 )}
 
@@ -578,6 +569,17 @@ function ProfilePage() {
           )}
         </section>
       </motion.div>
+
+      {/* Floating Action Button (FAB) for Messaging */}
+      {!isOwnProfile && (
+        <button
+          onClick={() => navigate(`/chat/${profileUser?._id}`)}
+          className="fixed bottom-20 right-8 z-50 flex items-center gap-2 rounded-full bg-cesar-cyan px-6 py-3.5 font-bold text-cesar-dark shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all duration-300 hover:scale-105 hover:bg-white hover:text-cesar-cyan hover:shadow-[0_0_30px_rgba(0,240,255,0.6)]"
+        >
+          <MessageCircle className="h-5 w-5" />
+          <span>تواصل معي</span>
+        </button>
+      )}
     </div>
   );
 }
