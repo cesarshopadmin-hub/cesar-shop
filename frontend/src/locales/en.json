@@ -8,6 +8,8 @@
     "logout": "Logout",
     "logoutShort": "Logout",
     "profile": "Profile",
+    "inbox": "Inbox",
+    "inboxShort": "Inbox",
     "login": "Login",
     "loginShort": "Login",
     "register": "Register",

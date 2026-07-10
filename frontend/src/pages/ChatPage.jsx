@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { ref, onValue, push, serverTimestamp } from "firebase/database";
+import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck } from "lucide-react";
+import { ref, onValue, push, serverTimestamp, update } from "firebase/database";
 import { toast } from "react-toastify";
 import { db } from "../Services/firebase";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -27,7 +27,6 @@ const ChatPage = () => {
   const [viewerImages, setViewerImages] = useState(null);
   const [viewerIndex, setViewerIndex] = useState(0);
 
-  const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
 
@@ -96,10 +95,25 @@ const ChatPage = () => {
     return () => unsubscribe();
   }, [chatId]);
 
-  // Scroll to bottom when messages update
+  // Mark received messages as read
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!messages.length || !currentUser?._id || !chatId) return;
+
+    const unreadMessages = messages.filter(
+      (msg) => msg.senderId !== currentUser._id && !msg.isRead
+    );
+
+    if (unreadMessages.length > 0) {
+      const updates = {};
+      unreadMessages.forEach((msg) => {
+        updates[`chats/${chatId}/messages/${msg.id}/isRead`] = true;
+      });
+      update(ref(db), updates).catch((err) => {
+        console.error("Error marking messages as read:", err);
+      });
+    }
+  }, [messages, currentUser, chatId]);
+
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -178,6 +192,7 @@ const ChatPage = () => {
     const messageData = {
       senderId: currentUser._id,
       timestamp: serverTimestamp(),
+      isRead: false,
     };
 
     if (newMessage.trim()) {
@@ -240,7 +255,7 @@ const ChatPage = () => {
   return (
     <div
       dir={i18n.dir()}
-      className="min-h-screen bg-cesar-darker font-cairo flex flex-col text-white"
+      className="h-screen bg-cesar-darker font-cairo flex flex-col text-white overflow-hidden"
     >
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between border-b border-white/5 bg-cesar-dark/85 px-4 py-3 backdrop-blur-md">
@@ -275,76 +290,80 @@ const ChatPage = () => {
         </div>
       </header>
 
-      {/* Messages area */}
-      <main className="flex-1 overflow-y-auto px-4 pt-6 pb-24 space-y-4 max-w-4xl mx-auto w-full flex flex-col justify-end">
-        <div className="space-y-4 flex-grow flex flex-col justify-end">
-          {messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-40">
-              <div className="h-16 w-16 rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan flex items-center justify-center mb-4">
-                <User className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-bold text-white">ابدأ المحادثة الآن</h3>
-              <p className="text-sm mt-1">أرسل أول رسالة لبدء التواصل مع البائع.</p>
+      {/* Messages area — flex-col-reverse anchors scroll to bottom natively, no JS needed */}
+      <main className="flex-1 overflow-y-auto px-4 py-4 max-w-4xl mx-auto w-full flex flex-col-reverse gap-2">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center p-8 opacity-40">
+            <div className="h-16 w-16 rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan flex items-center justify-center mb-4">
+              <User className="h-8 w-8" />
             </div>
-          ) : (
-            messages.map((msg) => {
-              const isMe = msg.senderId === currentUser?._id;
-              const hasImages = (msg.images && msg.images.length > 0) || msg.imageUrl;
-              return (
+            <h3 className="text-lg font-bold text-white">ابدأ المحادثة الآن</h3>
+            <p className="text-sm mt-1">أرسل أول رسالة لبدء التواصل مع البائع.</p>
+          </div>
+        ) : (
+          [...messages].reverse().map((msg) => {
+            const isMe = msg.senderId === currentUser?._id;
+            const hasImages = (msg.images && msg.images.length > 0) || msg.imageUrl;
+            return (
+              <div
+                key={msg.id}
+                className={`flex flex-col max-w-[75%] md:max-w-[80%] mx-4 ${
+                  isMe ? "self-end items-end" : "self-start items-start"
+                }`}
+              >
                 <div
-                  key={msg.id}
-                  className={`flex flex-col max-w-[75%] md:max-w-[80%] mx-4 my-1.5 ${
-                    isMe ? "self-end items-end" : "self-start items-start"
-                  }`}
+                  dir="auto"
+                  className={`text-sm rounded-2xl text-start leading-relaxed whitespace-pre-wrap break-words break-all ${
+                    isMe
+                      ? "bg-cesar-cyan/20 text-cesar-cyan border border-cesar-cyan/30 rounded-br-none"
+                      : "bg-white/10 text-white border border-white/5 rounded-bl-none"
+                  } ${hasImages && !msg.text ? "p-1" : "px-4 py-2.5"}`}
                 >
-                  <div
-                    dir="auto"
-                    className={`text-sm rounded-2xl text-start leading-relaxed whitespace-pre-wrap break-words break-all ${
-                      isMe
-                        ? "bg-cesar-cyan/20 text-cesar-cyan border border-cesar-cyan/30 rounded-br-none"
-                        : "bg-white/10 text-white border border-white/5 rounded-bl-none"
-                    } ${hasImages && !msg.text ? "p-1" : "px-4 py-2.5"}`}
-                  >
-                    {/* Backwards Compatibility: Single image string */}
-                    {msg.imageUrl && !msg.images && (
-                      <img
-                        src={optimizeImage(msg.imageUrl) || msg.imageUrl}
-                        alt="Shared media"
-                        className="rounded-xl max-w-sm w-full object-cover cursor-pointer hover:opacity-90 transition mb-1"
-                        onClick={() => { setViewerImages([msg.imageUrl]); setViewerIndex(0); }}
-                      />
-                    )}
+                  {/* Backwards Compatibility: Single image string */}
+                  {msg.imageUrl && !msg.images && (
+                    <img
+                      src={optimizeImage(msg.imageUrl) || msg.imageUrl}
+                      alt="Shared media"
+                      className="rounded-xl max-w-sm w-full object-cover cursor-pointer hover:opacity-90 transition mb-1"
+                      onClick={() => { setViewerImages([msg.imageUrl]); setViewerIndex(0); }}
+                    />
+                  )}
 
-                    {/* New: Multi-image grid */}
-                    {msg.images && msg.images.length > 0 && (
-                      <div
-                        className={`grid gap-1 mb-1 max-w-sm ${
-                          msg.images.length === 1 ? "grid-cols-1" : "grid-cols-2"
-                        }`}
-                      >
-                        {msg.images.map((imgUrl, i) => (
-                          <img
-                            key={i}
-                            src={optimizeImage(imgUrl) || imgUrl}
-                            alt={`Shared media ${i}`}
-                            className="rounded-lg w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition"
-                            onClick={() => { setViewerImages(msg.images); setViewerIndex(i); }}
-                          />
-                        ))}
-                      </div>
-                    )}
+                  {/* New: Multi-image grid */}
+                  {msg.images && msg.images.length > 0 && (
+                    <div
+                      className={`grid gap-1 mb-1 max-w-sm ${
+                        msg.images.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                      }`}
+                    >
+                      {msg.images.map((imgUrl, i) => (
+                        <img
+                          key={i}
+                          src={optimizeImage(imgUrl) || imgUrl}
+                          alt={`Shared media ${i}`}
+                          className="rounded-lg w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition"
+                          onClick={() => { setViewerImages(msg.images); setViewerIndex(i); }}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-                    {msg.text && <p>{msg.text}</p>}
-                  </div>
-                  <span className="text-[10px] text-cesar-gray mt-1 px-1">
-                    {formatTime(msg.timestamp)}
-                  </span>
+                  {msg.text && <p>{msg.text}</p>}
                 </div>
-              );
-            })
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+                <div className="flex items-center gap-1 mt-1 px-1 text-[10px] text-cesar-gray justify-end">
+                  <span>{formatTime(msg.timestamp)}</span>
+                  {isMe && (
+                    msg.isRead ? (
+                      <CheckCheck className="h-3.5 w-3.5 text-cesar-cyan shrink-0 animate-pulse" />
+                    ) : (
+                      <Check className="h-3.5 w-3.5 text-cesar-gray shrink-0" />
+                    )
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </main>
 
       {/* Input area */}

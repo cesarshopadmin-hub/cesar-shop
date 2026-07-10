@@ -1,9 +1,12 @@
+import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut, Shield } from "lucide-react";
+import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut, Shield, MessageSquare } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import CesarLogo from "../CesarLogo";
 import FloatingWarning from "../ui/FloatingWarning";
+import { ref, onValue } from "firebase/database";
+import { db } from "../../Services/firebase";
 // import ParticleBackground from "./ParticleBackground";
 
 function MainLayout() {
@@ -17,6 +20,39 @@ function MainLayout() {
   
   const currentUser = user?.name ? user : user?.user;
   const isAdmin = currentUser?.role === "admin";
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!currentUser?._id) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const chatsRef = ref(db, "chats");
+    const unsubscribe = onValue(chatsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        setUnreadCount(0);
+        return;
+      }
+
+      let total = 0;
+      Object.keys(data).forEach((chatId) => {
+        if (chatId.includes(currentUser._id)) {
+          const chat = data[chatId];
+          const messagesObj = chat.messages || {};
+          const count = Object.values(messagesObj).filter(
+            (msg) => msg.senderId !== currentUser._id && !msg.isRead
+          ).length;
+          total += count;
+        }
+      });
+      setUnreadCount(total);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const handleLogout = () => {
     logout();
@@ -48,6 +84,14 @@ function MainLayout() {
               
               {isLoggedIn ? (
                 <>
+                  <Link to="/inbox" className={`transition hover:text-cesar-cyan relative ${isActive('/inbox') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>
+                    {t("nav.inbox")}
+                    {unreadCount > 0 && (
+                      <span className="bg-red-500 text-white text-[9px] h-4 w-4 flex items-center justify-center rounded-full absolute -top-2 -right-3 font-bold scale-90 animate-pulse">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Link>
                   <Link to="/add-post" className={`transition hover:text-cesar-cyan ${isActive('/add-post') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>{t("nav.addPost")}</Link>
                   <Link to="/profile" className={`transition hover:text-cesar-cyan ${isActive('/profile') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>{t("nav.profile")}</Link>
                   
@@ -109,6 +153,19 @@ function MainLayout() {
                 <PlusSquare className={`h-5 w-5 ${isActive('/add-post') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
                 <span className={`text-[10px] font-medium ${isActive('/add-post') ? 'text-cesar-cyan' : 'text-slate-400'}`}>{t("nav.addPost")}</span>
                 {isActive('/add-post') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
+              </Link>
+
+              <Link to="/inbox" className="flex flex-col items-center gap-1 w-full pt-2 pb-1 relative">
+                <div className="relative">
+                  <MessageSquare className={`h-5 w-5 ${isActive('/inbox') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
+                  {unreadCount > 0 && (
+                    <span className="bg-red-500 text-white text-[9px] h-4 w-4 flex items-center justify-center rounded-full absolute -top-1 -right-2 font-bold animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                <span className={`text-[10px] font-medium ${isActive('/inbox') ? 'text-cesar-cyan' : 'text-slate-400'}`}>{t("nav.inboxShort")}</span>
+                {isActive('/inbox') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
               </Link>
 
               <Link to="/profile" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
