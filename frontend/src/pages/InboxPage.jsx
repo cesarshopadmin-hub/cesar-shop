@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { MessageSquare, Loader2, User } from "lucide-react";
+import { MessageSquare, Loader2, User, ShieldAlert } from "lucide-react";
 import { ref, onValue } from "firebase/database";
 import { db } from "../Services/firebase";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -33,8 +33,13 @@ const InboxPage = () => {
       }
 
       const chatList = [];
+      const adminId = import.meta.env.VITE_ADMIN_ID;
       Object.keys(data).forEach((chatId) => {
-        if (chatId.includes(currentUser._id)) {
+        const isParticipant = chatId.includes(currentUser._id);
+        const isMediatedChat = data[chatId]?.isMediated === true;
+        const isAdminUser = currentUser._id === adminId;
+
+        if (isParticipant || (isAdminUser && isMediatedChat)) {
           const parts = chatId.split("_");
           const otherUserId = parts[0] === currentUser._id ? parts[1] : parts[0];
           chatList.push({
@@ -48,12 +53,44 @@ const InboxPage = () => {
       try {
         const resolvedConversations = await Promise.all(
           chatList.map(async (item) => {
-            let otherUser = usersCacheRef.current[item.otherUserId];
-            if (!otherUser) {
+            let otherUser = null;
+            let userA = null;
+            let userB = null;
+
+            if (item.isMediated && !item.isDirectChat) {
+              // Fetch user A
               try {
-                const res = await api.get(`/users/${item.otherUserId}`);
-                otherUser = res.data;
-                usersCacheRef.current[item.otherUserId] = otherUser;
+                userA = usersCacheRef.current[item.userAId];
+                if (!userA) {
+                  const res = await api.get(`/users/${item.userAId}`);
+                  userA = res.data;
+                  usersCacheRef.current[item.userAId] = userA;
+                }
+              } catch (err) {
+                console.error(`Error fetching user A ${item.userAId}:`, err);
+                userA = { name: i18n.language === "ar" ? "مستخدم أ" : "User A" };
+              }
+
+              // Fetch user B
+              try {
+                userB = usersCacheRef.current[item.userBId];
+                if (!userB) {
+                  const res = await api.get(`/users/${item.userBId}`);
+                  userB = res.data;
+                  usersCacheRef.current[item.userBId] = userB;
+                }
+              } catch (err) {
+                console.error(`Error fetching user B ${item.userBId}:`, err);
+                userB = { name: i18n.language === "ar" ? "مستخدم ب" : "User B" };
+              }
+            } else {
+              try {
+                otherUser = usersCacheRef.current[item.otherUserId];
+                if (!otherUser) {
+                  const res = await api.get(`/users/${item.otherUserId}`);
+                  otherUser = res.data;
+                  usersCacheRef.current[item.otherUserId] = otherUser;
+                }
               } catch (err) {
                 console.error(`Error fetching user ${item.otherUserId}:`, err);
                 otherUser = {
@@ -79,7 +116,11 @@ const InboxPage = () => {
 
             return {
               chatId: item.chatId,
+              isMediated: item.isMediated,
+              isDirectChat: item.isDirectChat,
               otherUser,
+              userA,
+              userB,
               lastMessage: lastMsg,
               unreadCount,
             };
@@ -196,42 +237,62 @@ const InboxPage = () => {
           </div>
         ) : (
           <div className="rounded-[2rem] border border-white/5 bg-cesar-dark/80 overflow-hidden shadow-2xl backdrop-blur-md divide-y divide-white/5">
-            {conversations.map((conv) => (
-              <Link
-                key={conv.chatId}
-                to={`/chat/${conv.otherUser._id}`}
-                className="flex items-center justify-between p-4 sm:p-5 hover:bg-white/5 transition duration-300 group"
-              >
-                <div className="flex items-center gap-4 min-w-0 flex-1">
-                  {/* User Profile Picture */}
-                  <div className="shrink-0">
-                    {conv.otherUser.profilePictureUrl ? (
-                      <img
-                        src={optimizeImage(conv.otherUser.profilePictureUrl)}
-                        alt={conv.otherUser.name}
-                        className="h-12 w-12 rounded-full object-cover border border-white/10 group-hover:border-cesar-cyan/50 transition-colors duration-300"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cesar-cyan/10 border border-cesar-cyan/20 text-cesar-cyan group-hover:border-cesar-cyan/50 transition-colors duration-300">
-                        <User className="h-6 w-6" />
-                      </div>
-                    )}
-                  </div>
+            {conversations.map((conv) => {
+              const isMediatedAdminChat = conv.isMediated && !conv.isDirectChat;
+              const chatTitle = conv.isMediated
+                ? (isMediatedAdminChat 
+                    ? `وساطة - تدخل إدارة (${conv.userA?.name || ""} و ${conv.userB?.name || ""})`
+                    : `وساطة - تدخل إدارة (مع ${conv.otherUser?.name || ""})`
+                  )
+                : conv.otherUser?.name || "";
 
-                  {/* Message Preview details */}
-                  <div className="min-w-0 flex-1 text-right">
-                    <h3 className="font-bold text-white group-hover:text-cesar-cyan transition-colors duration-300 text-base">
-                      {conv.otherUser.name}
-                    </h3>
-                    <p className={`text-sm line-clamp-1 mt-1 transition-colors duration-300 ${
-                      conv.unreadCount > 0 
-                        ? "text-white font-bold" 
-                        : "text-cesar-gray group-hover:text-slate-300"
-                    }`}>
-                      {renderLastMessagePreview(conv.lastMessage)}
-                    </p>
+              return (
+                <Link
+                  key={conv.chatId}
+                  to={conv.isMediated ? `/chat/${conv.chatId}` : `/chat/${conv.otherUser?._id}`}
+                  className="flex items-center justify-between p-4 sm:p-5 hover:bg-white/5 transition duration-300 group"
+                >
+                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                    {/* User Profile Picture */}
+                    <div className="shrink-0">
+                      {conv.isMediated ? (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 group-hover:border-yellow-500/50 transition-colors duration-300">
+                          <ShieldAlert className="h-6 w-6 animate-pulse" />
+                        </div>
+                      ) : conv.otherUser?.profilePictureUrl ? (
+                        <img
+                          src={optimizeImage(conv.otherUser.profilePictureUrl)}
+                          alt={conv.otherUser.name}
+                          className="h-12 w-12 rounded-full object-cover border border-white/10 group-hover:border-cesar-cyan/50 transition-colors duration-300"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cesar-cyan/10 border border-cesar-cyan/20 text-cesar-cyan group-hover:border-cesar-cyan/50 transition-colors duration-300">
+                          <User className="h-6 w-6" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Message Preview details */}
+                    <div className="min-w-0 flex-1 text-right">
+                      <div className="flex items-center justify-end gap-2 flex-row-reverse">
+                        <h3 className="font-bold text-white group-hover:text-cesar-cyan transition-colors duration-300 text-base truncate">
+                          {chatTitle}
+                        </h3>
+                        {conv.isMediated && (
+                          <span className="shrink-0 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-[10px] font-bold font-cairo px-2 py-0.5 rounded-full select-none">
+                            تدخل إدارة
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-sm line-clamp-1 mt-1 transition-colors duration-300 ${
+                        conv.unreadCount > 0 
+                          ? "text-white font-bold" 
+                          : "text-cesar-gray group-hover:text-slate-300"
+                      }`}>
+                        {renderLastMessagePreview(conv.lastMessage)}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
                 {/* Formatted last active time & Unread Badge */}
                 <div className="shrink-0 flex flex-col items-end gap-1.5 text-left mr-4">
@@ -245,8 +306,9 @@ const InboxPage = () => {
                   )}
                 </div>
               </Link>
-            ))}
-          </div>
+            );
+          })}
+        </div>
         )}
       </div>
     </div>

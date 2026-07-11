@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck } from "lucide-react";
+import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck, ShieldAlert } from "lucide-react";
 import { ref, onValue, push, serverTimestamp, update } from "firebase/database";
 import { toast } from "react-toastify";
 import { db } from "../Services/firebase";
@@ -10,7 +10,8 @@ import api from "../Services/api.js";
 import { optimizeImage } from "../utils/imageOptimizer.js";
 
 const ChatPage = () => {
-  const { id: targetUserId } = useParams();
+  const { id: targetId } = useParams();
+  const targetUserId = targetId;
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const currentUser = user?.name ? user : user?.user;
@@ -26,13 +27,29 @@ const ChatPage = () => {
   const [previewUrls, setPreviewUrls] = useState([]);
   const [viewerImages, setViewerImages] = useState(null);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [participants, setParticipants] = useState([]);
+  const [showMediationModal, setShowMediationModal] = useState(false);
 
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
 
-  const chatId = currentUser && targetUserId 
-    ? [currentUser._id, targetUserId].sort().join("_") 
-    : null;
+  const [chatId, setChatId] = useState(null);
+
+  // Initialize Chat ID
+  useEffect(() => {
+    if (!targetId || !currentUser?._id) return;
+
+    if (targetId.includes("_")) {
+      setChatId(targetId);
+    } else {
+      const directId = [currentUser._id, targetId].sort().join("_");
+      setChatId(directId);
+    }
+  }, [targetId, currentUser?._id]);
+
+  const isMediationRoom = targetId && targetId.includes("_");
+
+  const [mediatorUsers, setMediatorUsers] = useState([]);
 
   // Manage object URLs for file previews to avoid memory leaks
   useEffect(() => {
@@ -43,9 +60,41 @@ const ChatPage = () => {
     };
   }, [selectedFiles]);
 
-  // Fetch target user info
+  // Fetch mediated users info (for mediation rooms)
   useEffect(() => {
-    if (!targetUserId) return;
+    if (!isMediationRoom || !targetUserId) return;
+    let isMounted = true;
+    const fetchMediatedUsers = async () => {
+      try {
+        setLoading(true);
+        const parts = targetUserId.split("_");
+        const users = await Promise.all(
+          parts.map((id) =>
+            api.get(`/users/${id}`)
+              .then((res) => res.data)
+              .catch(() => ({ name: i18n.language === "ar" ? "مستخدم" : "User" }))
+          )
+        );
+        if (isMounted) {
+          setMediatorUsers(users);
+        }
+      } catch (err) {
+        console.error("Error fetching mediated users:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    fetchMediatedUsers();
+    return () => {
+      isMounted = false;
+    };
+  }, [targetUserId, isMediationRoom, i18n.language]);
+
+  // Fetch target user info (for direct chats only)
+  useEffect(() => {
+    if (!targetUserId || isMediationRoom) return;
     let isMounted = true;
     const fetchTargetUser = async () => {
       try {
@@ -69,7 +118,7 @@ const ChatPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [targetUserId]);
+  }, [targetUserId, isMediationRoom]);
 
   // Read/Subscribe to Firebase messages
   useEffect(() => {
@@ -113,6 +162,64 @@ const ChatPage = () => {
       });
     }
   }, [messages, currentUser, chatId]);
+
+  // Subscribe to participants list
+  useEffect(() => {
+    if (!chatId) return;
+
+    const participantsRef = ref(db, `chats/${chatId}/participants`);
+    const unsubscribe = onValue(participantsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (Array.isArray(data)) {
+        setParticipants(data);
+      } else {
+        setParticipants([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [chatId]);
+
+  const adminId = import.meta.env.VITE_ADMIN_ID;
+  const isMediationVisible = 
+    currentUser?._id &&
+    targetUserId &&
+    currentUser._id !== adminId &&
+    targetUserId !== adminId &&
+    !participants.includes(adminId);
+
+  const handleRequestMediation = () => {
+    setShowMediationModal(true);
+  };
+
+  const confirmMediation = async () => {
+    const updatedParticipants = Array.from(
+      new Set([...participants, currentUser._id, targetUserId, adminId])
+    );
+
+    const messagesRef = ref(db, `chats/${chatId}/messages`);
+    const newMsgRef = push(messagesRef);
+
+    const updates = {};
+    updates[`chats/${chatId}/participants`] = updatedParticipants;
+    updates[`chats/${chatId}/isMediated`] = true;
+    updates[`userChats/${adminId}/${chatId}`] = true;
+    updates[`chats/${chatId}/messages/${newMsgRef.key}`] = {
+      senderId: "system",
+      text: "تم طلب تدخل الإدارة. سينضم إليكم أحد المشرفين قريباً للوساطة.",
+      timestamp: serverTimestamp(),
+      isRead: false,
+    };
+
+    try {
+      await update(ref(db), updates);
+      toast.success("تم إبلاغ الإدارة بنجاح");
+      setShowMediationModal(false);
+    } catch (err) {
+      console.error("Error requesting admin mediation:", err);
+      toast.error("حدث خطأ أثناء إرسال طلب تدخل الإدارة.");
+    }
+  };
 
 
   const handleKeyDown = (e) => {
@@ -238,7 +345,7 @@ const ChatPage = () => {
     );
   }
 
-  if (error || !targetUser) {
+  if (error || (!targetUser && !isMediationRoom)) {
     return (
       <div className="min-h-screen bg-cesar-darker font-cairo flex flex-col items-center justify-center text-white p-4">
         <p className="text-red-500 mb-4">{error || "البائع غير موجود"}</p>
@@ -268,7 +375,11 @@ const ChatPage = () => {
             <ArrowRight className={`h-5 w-5 ${i18n.dir() === "rtl" ? "" : "rotate-180"}`} />
           </button>
           <div className="flex items-center gap-3">
-            {targetUser.profilePictureUrl ? (
+            {isMediationRoom ? (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
+                <ShieldAlert className="h-5 w-5 animate-pulse" />
+              </div>
+            ) : targetUser.profilePictureUrl ? (
               <img
                 src={optimizeImage(targetUser.profilePictureUrl)}
                 alt={targetUser.name}
@@ -280,14 +391,36 @@ const ChatPage = () => {
               </div>
             )}
             <div>
-              <h2 className="text-base font-bold leading-tight">{targetUser.name}</h2>
-              <span className="text-xs text-emerald-400 flex items-center gap-1.5 mt-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                تواصل مباشر
+              <h2 className="text-base font-bold leading-tight">
+                {isMediationRoom 
+                  ? `وساطة: ${mediatorUsers[0]?.name || ""} و ${mediatorUsers[1]?.name || ""}` 
+                  : targetUser.name}
+              </h2>
+              <span className="text-xs flex items-center gap-1.5 mt-0.5 font-bold font-cairo text-emerald-400">
+                {isMediationRoom ? (
+                  <span className="text-yellow-500">غرفة النزاع والوساطة</span>
+                ) : (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    تواصل مباشر
+                  </>
+                )}
               </span>
             </div>
           </div>
         </div>
+
+        {/* Request Mediation Button */}
+        {isMediationVisible && (
+          <button
+            type="button"
+            onClick={handleRequestMediation}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-yellow-500/50 text-yellow-500 bg-transparent hover:bg-yellow-500/10 transition font-bold font-cairo text-xs select-none"
+          >
+            <ShieldAlert className="h-4 w-4 animate-pulse text-yellow-500" />
+            <span>تدخل الإدارة</span>
+          </button>
+        )}
       </header>
 
       {/* Messages area — flex-col-reverse anchors scroll to bottom natively, no JS needed */}
@@ -302,6 +435,19 @@ const ChatPage = () => {
           </div>
         ) : (
           [...messages].reverse().map((msg) => {
+            if (msg.senderId === "system") {
+              return (
+                <div
+                  key={msg.id}
+                  className="self-center my-3 mx-auto max-w-[90%] md:max-w-[70%] text-center"
+                >
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300/95 text-xs px-4 py-2 rounded-xl font-medium inline-block shadow-sm">
+                    {msg.text}
+                  </div>
+                </div>
+              );
+            }
+
             const isMe = msg.senderId === currentUser?._id;
             const hasImages = (msg.images && msg.images.length > 0) || msg.imageUrl;
             return (
@@ -482,6 +628,39 @@ const ChatPage = () => {
             alt={`Viewer Image ${viewerIndex}`}
             className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
           />
+        </div>
+      )}
+      {/* Mediation Confirmation Modal */}
+      {showMediationModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/5 bg-cesar-dark/95 p-6 text-center shadow-2xl">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent"></div>
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-500">
+                <ShieldAlert className="h-6 w-6 animate-pulse" />
+              </div>
+              <h3 className="text-lg font-bold text-white font-cairo">طلب تدخل الإدارة</h3>
+              <p className="text-sm text-cesar-gray leading-relaxed font-cairo">
+                هل أنت متأكد من طلب تدخل الإدارة في هذه المحادثة؟ سيقوم أحد المشرفين بالانضمام قريباً للمساعدة والوساطة.
+              </p>
+              <div className="flex gap-3 w-full mt-2 font-cairo">
+                <button
+                  type="button"
+                  onClick={confirmMediation}
+                  className="flex-1 py-3 rounded-xl border border-yellow-500/50 text-yellow-500 bg-transparent hover:bg-yellow-500/10 text-sm font-bold transition duration-200"
+                >
+                  تأكيد
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMediationModal(false)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-cesar-gray hover:text-white text-sm font-bold transition duration-200"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
