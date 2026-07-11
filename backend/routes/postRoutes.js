@@ -97,9 +97,6 @@ const postUpdateValidationRules = [
 router.post(
   "/",
   protect,
-  upload.fields([
-    { name: "images", maxCount: 5 }
-  ]),
   postValidationRules,
   handleValidationErrors,
   createPost,
@@ -126,9 +123,6 @@ router.get("/:id", getPostById);
 router.put(
   "/:id",
   protect,
-  upload.fields([
-    { name: "images", maxCount: 5 }
-  ]),
   postUpdateValidationRules,
   handleValidationErrors,
   updatePost

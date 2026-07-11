@@ -474,7 +474,7 @@ const PostDetailsPage = () => {
                   {isAdmin ? "إدارة الإعلان (أدمن)" : "إدارة الإعلان الخاص بك"}
                 </h3>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  {isOwner && post.status === "pending" && (
+                  {isOwner && (post.status === "pending" || post.status === "rejected") && (
                     <Link
                       to={`/edit-post/${post._id}`}
                       className="flex-1 flex items-center justify-center gap-2 py-3 border border-cesar-cyan/40 bg-cesar-cyan/10 text-cesar-cyan hover:bg-cesar-cyan/20 hover:shadow-neon-cyan rounded-xl font-bold text-sm transition-all duration-300 text-center"
