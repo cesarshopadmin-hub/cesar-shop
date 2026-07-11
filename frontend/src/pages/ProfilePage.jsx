@@ -16,6 +16,7 @@ import {
   X,
   Trash2,
   MessageCircle,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
@@ -574,9 +575,9 @@ function ProfilePage() {
       {!isOwnProfile && (
         <button
           onClick={() => navigate(`/chat/${profileUser?._id}`)}
-          className="fixed bottom-20 right-8 z-50 flex items-center gap-2 rounded-full bg-cesar-cyan px-6 py-3.5 font-bold text-cesar-dark shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all duration-300 hover:scale-105 hover:bg-white hover:text-cesar-cyan hover:shadow-[0_0_30px_rgba(0,240,255,0.6)]"
+          className="fixed z-40 right-4 bottom-20 md:right-6 md:bottom-6 flex items-center gap-2 px-5 py-2.5 rounded-full bg-cesar-darker/90 backdrop-blur-md border border-cesar-cyan/50 text-cesar-cyan font-bold font-cairo text-sm shadow-[0_0_15px_rgba(0,229,255,0.2)] transition-all duration-300 hover:bg-cesar-cyan/10 hover:scale-105 active:scale-95"
         >
-          <MessageCircle className="h-5 w-5" />
+          <MessageCircle className="h-4 w-4 animate-pulse" style={{ animationDuration: "2.5s" }} />
           <span>تواصل معي</span>
         </button>
       )}
