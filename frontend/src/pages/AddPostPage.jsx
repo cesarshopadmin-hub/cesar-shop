@@ -159,20 +159,45 @@ function AddPostPage() {
 
     setFieldErrors({});
 
-    const payload = new FormData();
-    payload.append("category", formData.category);
-    payload.append("price", formData.price);
-    payload.append("description", formData.description.trim());
-    payload.append("whatsappNumber", formData.whatsappNumber.trim());
-    payload.append("countryCode", formData.countryCode.trim());
-    selectedImages.forEach(file => payload.append("images", file));
-
     try {
-      await api.post("/posts", payload, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      // 1. Upload images directly to Cloudinary from the client
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = (import.meta.env.VITE_CLOUDINARY_CHAT_PRESET || "chat_media").replace(/"/g, "");
+
+      const uploadPromises = selectedImages.map(async (file) => {
+        const uploadData = new FormData();
+        uploadData.append("file", file);
+        uploadData.append("upload_preset", uploadPreset);
+
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+          {
+            method: "POST",
+            body: uploadData,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to upload image to Cloudinary");
+        }
+
+        const data = await response.json();
+        return data.secure_url;
       });
+
+      const uploadedUrlsArray = await Promise.all(uploadPromises);
+
+      // 2. Construct JSON payload for backend
+      const payload = {
+        category: formData.category,
+        price: Number(formData.price),
+        description: formData.description.trim(),
+        whatsappNumber: formData.whatsappNumber.trim(),
+        countryCode: formData.countryCode.trim(),
+        images: uploadedUrlsArray,
+      };
+
+      await api.post("/posts", payload);
 
       toast.success("تم إضافة الإعلان بنجاح!");
       resetForm();

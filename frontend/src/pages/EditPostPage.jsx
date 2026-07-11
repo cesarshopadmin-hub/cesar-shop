@@ -180,24 +180,59 @@ function EditPostPage() {
 
     setFieldErrors({});
 
-    const payload = new FormData();
-    payload.append("category", formData.category);
-    payload.append("price", formData.price);
-    payload.append("description", formData.description.trim());
-    payload.append("whatsappNumber", formData.whatsappNumber.trim());
-    payload.append("countryCode", formData.countryCode.trim());
-    selectedImages.forEach((file) => {
-      if (file instanceof File) {
-        payload.append("images", file);
+    const existingUrls = selectedImages.filter((img) => typeof img === "string");
+    const newFiles = selectedImages.filter((img) => img instanceof File);
+
+    let newUploadedUrls = [];
+
+    if (newFiles.length > 0) {
+      try {
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+        const uploadPreset = (import.meta.env.VITE_CLOUDINARY_CHAT_PRESET || "chat_media").replace(/"/g, "");
+
+        const uploadPromises = newFiles.map(async (file) => {
+          const uploadData = new FormData();
+          uploadData.append("file", file);
+          uploadData.append("upload_preset", uploadPreset);
+
+          const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+            {
+              method: "POST",
+              body: uploadData,
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to upload image to Cloudinary");
+          }
+
+          const data = await response.json();
+          return data.secure_url;
+        });
+
+        newUploadedUrls = await Promise.all(uploadPromises);
+      } catch (uploadErr) {
+        console.error("Error uploading new images:", uploadErr);
+        toast.error("فشل رفع بعض الصور الجديدة. يرجى المحاولة مرة أخرى.");
+        setLoading(false);
+        return;
       }
-    });
+    }
+
+    const finalImagesArray = [...existingUrls, ...newUploadedUrls];
+
+    const payload = {
+      category: formData.category,
+      price: Number(formData.price),
+      description: formData.description.trim(),
+      whatsappNumber: formData.whatsappNumber.trim(),
+      countryCode: formData.countryCode.trim(),
+      images: finalImagesArray,
+    };
 
     try {
-      await api.put(`/posts/${id}`, payload, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await api.put(`/posts/${id}`, payload);
 
       toast.success("تم تعديل الإعلان بنجاح!");
       navigate("/profile");

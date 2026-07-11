@@ -19,17 +19,9 @@ const getPublicIdFromUrl = (url) => {
 };
 
 const createPost = asyncHandler(async (req, res) => {
-  const { whatsappNumber, countryCode, description, category, price } = req.body;
+  const { whatsappNumber, countryCode, description, category, price, images } = req.body;
   
-  let imageUrls = [];
-
-  if (req.files && req.files.images) {
-    const uploadPromises = req.files.images.map((file) =>
-      uploadToCloudinary(file.buffer, "cesar_shop_media")
-    );
-    const results = await Promise.all(uploadPromises);
-    imageUrls = results.map((result) => result.secure_url);
-  }
+  const imageUrls = Array.isArray(images) ? images : [];
 
   const post = await Post.create({
     user: req.user._id,
@@ -140,7 +132,7 @@ const getPostById = asyncHandler(async (req, res) => {
 });
 
 const updatePost = asyncHandler(async (req, res) => {
-  const { whatsappNumber, countryCode, description, category, price } = req.body;
+  const { whatsappNumber, countryCode, description, category, price, images } = req.body;
   const post = await Post.findById(req.params.id);
 
   if (!post) {
@@ -156,9 +148,9 @@ const updatePost = asyncHandler(async (req, res) => {
     throw new Error("غير مصرح لك بتعديل هذا الإعلان");
   }
 
-  if (!isAdmin && isOwner && post.status !== "pending") {
+  if (!isAdmin && isOwner && post.status !== "pending" && post.status !== "rejected") {
     res.status(403);
-    throw new Error("غير مصرح لك بتعديل هذا الإعلان إلا إذا كان معلقاً");
+    throw new Error("غير مصرح لك بتعديل هذا الإعلان إلا إذا كان معلقاً أو مرفوضاً");
   }
 
   // description, price, category — updatable by both admin and owner
@@ -170,13 +162,8 @@ const updatePost = asyncHandler(async (req, res) => {
     post.whatsappNumber = whatsappNumber !== undefined ? whatsappNumber : post.whatsappNumber;
     post.countryCode = countryCode !== undefined ? countryCode : post.countryCode;
 
-    if (req.files && req.files.images && req.files.images.length > 0) {
-      const uploadPromises = req.files.images.map((file) =>
-        uploadToCloudinary(file.buffer, "cesar_shop_media")
-      );
-      const results = await Promise.all(uploadPromises);
-      const imageUrls = results.map((result) => result.secure_url);
-      post.images = imageUrls;
+    if (Array.isArray(images)) {
+      post.images = images;
     }
   }
 
