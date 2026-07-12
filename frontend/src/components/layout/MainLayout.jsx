@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut, Shield, MessageSquare } from "lucide-react";
+import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut, Shield, MessageSquare, Megaphone } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import CesarLogo from "../CesarLogo";
@@ -82,6 +82,12 @@ function MainLayout() {
               <Link to="/" className={`transition hover:text-cesar-cyan ${isActive('/') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>{t("nav.home")}</Link>
               <Link to="/posts" className={`transition hover:text-cesar-cyan ${isActive('/posts') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>{t("nav.posts")}</Link>
               
+              {isLoggedIn && (
+                <Link to="/channel" className={`transition hover:text-cesar-cyan flex items-center gap-1 ${isActive('/channel') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>
+                  <Megaphone className="h-4 w-4" /> {t("nav.channel")}
+                </Link>
+              )}
+              
               {isLoggedIn ? (
                 <>
                   <Link to="/inbox" className={`transition hover:text-cesar-cyan relative ${isActive('/inbox') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>
@@ -133,11 +139,19 @@ function MainLayout() {
             {isActive('/') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
           </Link>
           
-          <Link to="/posts" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
+            <Link to="/posts" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
             <LayoutList className={`h-5 w-5 ${isActive('/posts') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
             <span className={`text-[10px] font-medium ${isActive('/posts') ? 'text-cesar-cyan' : 'text-slate-400'}`}>{t("nav.posts")}</span>
             {isActive('/posts') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
           </Link>
+
+          {isLoggedIn && (
+            <Link to="/channel" className="flex flex-col items-center gap-1 w-full pt-2 pb-1">
+              <Megaphone className={`h-5 w-5 ${isActive('/channel') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
+              <span className={`text-[10px] font-medium ${isActive('/channel') ? 'text-cesar-cyan' : 'text-slate-400'}`}>{t("nav.channel")}</span>
+              {isActive('/channel') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}
+            </Link>
+          )}
 
           {isLoggedIn ? (
             <>

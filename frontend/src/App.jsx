@@ -17,6 +17,7 @@ import PostsPage from "./pages/PostsPage.jsx";
 import PostDetailsPage from "./pages/PostDetailsPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import InboxPage from "./pages/InboxPage.jsx";
+import CesarChannelPage from "./pages/CesarChannelPage.jsx";
 import FloatingSupportButton from "./components/FloatingSupportButton.jsx";
 
 // Import Guards
@@ -46,6 +47,7 @@ function App() {
             <Route path="/inbox" element={<AuthGuard><InboxPage /></AuthGuard>} />
             <Route path="/add-post" element={<AuthGuard><AddPostPage /></AuthGuard>} />
             <Route path="/chat/:id" element={<AuthGuard><ChatPage /></AuthGuard>} />
+            <Route path="/channel" element={<AuthGuard><CesarChannelPage /></AuthGuard>} />
 
             {/* 👑 Admin Routes (Ll-moderen bs) */}
             <Route 
