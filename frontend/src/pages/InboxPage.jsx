@@ -46,6 +46,10 @@ const InboxPage = () => {
             chatId,
             otherUserId,
             rawChat: data[chatId],
+            isMediated: isMediatedChat,
+            isDirectChat: isParticipant && !isMediatedChat,
+            userAId: parts[0],
+            userBId: parts[1]
           });
         }
       });

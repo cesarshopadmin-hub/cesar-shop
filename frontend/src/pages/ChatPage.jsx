@@ -149,13 +149,13 @@ const ChatPage = () => {
     if (!messages.length || !currentUser?._id || !chatId) return;
 
     const unreadMessages = messages.filter(
-      (msg) => msg.senderId !== currentUser._id && !msg.isRead
+      (msg) => msg.senderId !== currentUser._id && !(msg.readBy && msg.readBy[currentUser._id])
     );
 
     if (unreadMessages.length > 0) {
       const updates = {};
       unreadMessages.forEach((msg) => {
-        updates[`chats/${chatId}/messages/${msg.id}/isRead`] = true;
+        updates[`chats/${chatId}/messages/${msg.id}/readBy/${currentUser._id}`] = true;
       });
       update(ref(db), updates).catch((err) => {
         console.error("Error marking messages as read:", err);
@@ -208,7 +208,9 @@ const ChatPage = () => {
       senderId: "system",
       text: "تم طلب تدخل الإدارة. سينضم إليكم أحد المشرفين قريباً للوساطة.",
       timestamp: serverTimestamp(),
-      isRead: false,
+      readBy: {
+        [currentUser._id]: true
+      }
     };
 
     try {
@@ -299,7 +301,9 @@ const ChatPage = () => {
     const messageData = {
       senderId: currentUser._id,
       timestamp: serverTimestamp(),
-      isRead: false,
+      readBy: {
+        [currentUser._id]: true
+      }
     };
 
     if (newMessage.trim()) {
@@ -332,6 +336,15 @@ const ChatPage = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const getSenderName = (senderId) => {
+    if (senderId === "system") return "";
+    const adminId = import.meta.env.VITE_ADMIN_ID;
+    if (senderId === adminId) return i18n.language === "ar" ? "الإدارة" : "Admin";
+
+    const foundUser = mediatorUsers.find((u) => u._id === senderId);
+    return foundUser?.name || (i18n.language === "ar" ? "مستخدم" : "User");
   };
 
   if (loading) {
@@ -457,6 +470,11 @@ const ChatPage = () => {
                   isMe ? "self-end items-end" : "self-start items-start"
                 }`}
               >
+                {!isMe && isMediationRoom && (
+                  <span className="text-[10px] font-bold text-cesar-cyan mb-0.5 px-1 font-cairo select-none">
+                    {getSenderName(msg.senderId)}
+                  </span>
+                )}
                 <div
                   dir="auto"
                   className={`text-sm rounded-2xl text-start leading-relaxed whitespace-pre-wrap break-words break-all ${
@@ -498,13 +516,18 @@ const ChatPage = () => {
                 </div>
                 <div className="flex items-center gap-1 mt-1 px-1 text-[10px] text-cesar-gray justify-end">
                   <span>{formatTime(msg.timestamp)}</span>
-                  {isMe && (
-                    msg.isRead ? (
-                      <CheckCheck className="h-3.5 w-3.5 text-cesar-cyan shrink-0 animate-pulse" />
-                    ) : (
-                      <Check className="h-3.5 w-3.5 text-cesar-gray shrink-0" />
-                    )
-                  )}
+                  {isMe && (() => {
+                    const readCount = msg.readBy ? Object.keys(msg.readBy).filter(id => id !== currentUser?._id).length : 0;
+                    const isReadByAll = participants.length > 1 ? readCount >= participants.length - 1 : false;
+                    
+                    if (isReadByAll) {
+                      return <CheckCheck className="h-3.5 w-3.5 text-cesar-cyan shrink-0 animate-pulse" />;
+                    } else if (readCount > 0) {
+                      return <CheckCheck className="h-3.5 w-3.5 text-cesar-gray shrink-0" />;
+                    } else {
+                      return <Check className="h-3.5 w-3.5 text-cesar-gray shrink-0" />;
+                    }
+                  })()}
                 </div>
               </div>
             );
