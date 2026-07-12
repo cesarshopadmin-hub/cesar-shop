@@ -29,6 +29,8 @@ function MainLayout() {
       return;
     }
 
+    const adminId = import.meta.env.VITE_ADMIN_ID;
+
     const chatsRef = ref(db, "chats");
     const unsubscribe = onValue(chatsRef, (snapshot) => {
       const data = snapshot.val();
@@ -39,11 +41,15 @@ function MainLayout() {
 
       let total = 0;
       Object.keys(data).forEach((chatId) => {
-        if (chatId.includes(currentUser._id)) {
+        const isParticipant = chatId.includes(currentUser._id);
+        const isMediatedChat = data[chatId]?.isMediated === true;
+        const isAdminUser = currentUser._id === adminId;
+
+        if (isParticipant || (isAdminUser && isMediatedChat)) {
           const chat = data[chatId];
           const messagesObj = chat.messages || {};
           const count = Object.values(messagesObj).filter(
-            (msg) => msg.senderId !== currentUser._id && !msg.isRead
+            (msg) => msg.senderId !== currentUser._id && !(msg.readBy && msg.readBy[currentUser._id])
           ).length;
           total += count;
         }

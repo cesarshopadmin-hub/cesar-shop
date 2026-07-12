@@ -115,7 +115,7 @@ const InboxPage = () => {
             const lastMsg = msgsList[msgsList.length - 1] || null;
 
             const unreadCount = Object.values(msgsObj).filter(
-              (msg) => msg.senderId !== currentUser._id && !msg.isRead
+              (msg) => msg.senderId !== currentUser._id && !(msg.readBy && msg.readBy[currentUser._id])
             ).length;
 
             return {

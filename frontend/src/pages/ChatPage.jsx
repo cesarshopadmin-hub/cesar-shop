@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck, ShieldAlert } from "lucide-react";
-import { ref, onValue, push, serverTimestamp, update } from "firebase/database";
+import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck, ShieldAlert, SmilePlus } from "lucide-react";
+import { ref, onValue, push, serverTimestamp, update, set, remove } from "firebase/database";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { db } from "../Services/firebase";
 import { useAuth } from "../context/AuthContext.jsx";
 import api from "../Services/api.js";
 import { optimizeImage } from "../utils/imageOptimizer.js";
+
+const reactEmojis = { like: '👍', love: '❤️', fire: '🔥', laugh: '😂', wow: '😮' };
 
 const ChatPage = () => {
   const { id: targetId } = useParams();
@@ -16,6 +19,7 @@ const ChatPage = () => {
   const { i18n } = useTranslation();
   const currentUser = user?.name ? user : user?.user;
   const navigate = useNavigate();
+  const adminId = import.meta.env.VITE_ADMIN_ID;
 
   const [targetUser, setTargetUser] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -28,6 +32,10 @@ const ChatPage = () => {
   const [viewerImages, setViewerImages] = useState(null);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [participants, setParticipants] = useState([]);
+
+  // Reactions state
+  const [activeReactMenu, setActiveReactMenu] = useState(null);
+  const [reactDetailsModal, setReactDetailsModal] = useState(null);
   const [showMediationModal, setShowMediationModal] = useState(false);
 
   const textareaRef = useRef(null);
@@ -163,6 +171,23 @@ const ChatPage = () => {
     }
   }, [messages, currentUser, chatId]);
 
+  const handleMessageReact = async (msgId, currentReacts, reactType) => {
+    if (!currentUser?._id || !chatId) return;
+    const userCurrentReact = currentReacts?.[currentUser._id];
+
+    try {
+      if (userCurrentReact === reactType) {
+        await remove(ref(db, `chats/${chatId}/messages/${msgId}/reacts/${currentUser._id}`));
+      } else {
+        await set(ref(db, `chats/${chatId}/messages/${msgId}/reacts/${currentUser._id}`), reactType);
+      }
+      setActiveReactMenu(null);
+    } catch (err) {
+      console.error("Error setting message reaction:", err);
+      toast.error(i18n.language === "ar" ? "تعذر تسجيل التفاعل" : "Failed to record reaction");
+    }
+  };
+
   // Subscribe to participants list
   useEffect(() => {
     if (!chatId) return;
@@ -180,7 +205,6 @@ const ChatPage = () => {
     return () => unsubscribe();
   }, [chatId]);
 
-  const adminId = import.meta.env.VITE_ADMIN_ID;
   const isMediationVisible = 
     currentUser?._id &&
     targetUserId &&
@@ -340,8 +364,8 @@ const ChatPage = () => {
 
   const getSenderName = (senderId) => {
     if (senderId === "system") return "";
-    const adminId = import.meta.env.VITE_ADMIN_ID;
     if (senderId === adminId) return i18n.language === "ar" ? "الإدارة" : "Admin";
+    if (targetUser && senderId === targetUser._id) return targetUser.name;
 
     const foundUser = mediatorUsers.find((u) => u._id === senderId);
     return foundUser?.name || (i18n.language === "ar" ? "مستخدم" : "User");
@@ -450,10 +474,7 @@ const ChatPage = () => {
           [...messages].reverse().map((msg) => {
             if (msg.senderId === "system") {
               return (
-                <div
-                  key={msg.id}
-                  className="self-center my-3 mx-auto max-w-[90%] md:max-w-[70%] text-center"
-                >
+                <div key={msg.id} className="self-center my-3 mx-auto max-w-[90%] md:max-w-[70%] text-center">
                   <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300/95 text-xs px-4 py-2 rounded-xl font-medium inline-block shadow-sm">
                     {msg.text}
                   </div>
@@ -463,13 +484,53 @@ const ChatPage = () => {
 
             const isMe = msg.senderId === currentUser?._id;
             const hasImages = (msg.images && msg.images.length > 0) || msg.imageUrl;
+            
             return (
               <div
                 key={msg.id}
-                className={`flex flex-col max-w-[75%] md:max-w-[80%] mx-4 ${
+                className={`flex flex-col max-w-[75%] md:max-w-[80%] mx-4 group relative ${
                   isMe ? "self-end items-end" : "self-start items-start"
                 }`}
               >
+                {activeReactMenu === msg.id && (
+                  <div 
+                    className="fixed inset-0 z-50 cursor-default"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveReactMenu(null);
+                    }}
+                  />
+                )}
+
+                <AnimatePresence>
+                  {activeReactMenu === msg.id && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                      className={`absolute bottom-full mb-1 z-[60] flex gap-2.5 bg-cesar-darker border border-white/10 rounded-full px-3 py-1.5 shadow-2xl w-max ${isMe ? "left-0 origin-bottom-left" : "right-0 origin-bottom-right"}`}
+                    >
+                      {Object.entries(reactEmojis).map(([type, emoji]) => {
+                        const isSelected = msg.reacts?.[currentUser?._id] === type;
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageReact(msg.id, msg.reacts, type);
+                            }}
+                            className={`hover:scale-125 transition duration-150 text-xl shrink-0 flex items-center justify-center w-8 h-8 rounded-full ${isSelected ? "bg-white/20 scale-110" : ""}`}
+                            title={type}
+                          >
+                            {emoji}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {!isMe && isMediationRoom && (
                   <span className="text-[10px] font-bold text-cesar-cyan mb-0.5 px-1 font-cairo select-none">
                     {getSenderName(msg.senderId)}
@@ -477,13 +538,12 @@ const ChatPage = () => {
                 )}
                 <div
                   dir="auto"
-                  className={`text-sm rounded-2xl text-start leading-relaxed whitespace-pre-wrap break-words break-all ${
+                  className={`text-sm rounded-2xl text-start leading-relaxed whitespace-pre-wrap break-words break-all relative ${
                     isMe
                       ? "bg-cesar-cyan/20 text-cesar-cyan border border-cesar-cyan/30 rounded-br-none"
                       : "bg-white/10 text-white border border-white/5 rounded-bl-none"
                   } ${hasImages && !msg.text ? "p-1" : "px-4 py-2.5"}`}
                 >
-                  {/* Backwards Compatibility: Single image string */}
                   {msg.imageUrl && !msg.images && (
                     <img
                       src={optimizeImage(msg.imageUrl) || msg.imageUrl}
@@ -493,7 +553,6 @@ const ChatPage = () => {
                     />
                   )}
 
-                  {/* New: Multi-image grid */}
                   {msg.images && msg.images.length > 0 && (
                     <div
                       className={`grid gap-1 mb-1 max-w-sm ${
@@ -513,12 +572,51 @@ const ChatPage = () => {
                   )}
 
                   {msg.text && <p>{msg.text}</p>}
+
+                  {/* Reactions Display Badge */}
+                  {(() => {
+                    const reactsArray = Object.values(msg.reacts || {});
+                    const totalReacts = reactsArray.length;
+                    if (totalReacts === 0) return null;
+                    const uniqueEmojis = Array.from(new Set(reactsArray)).map(r => reactEmojis[r]);
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReactDetailsModal(msg.id);
+                        }}
+                        className={`absolute -bottom-2.5 flex items-center gap-0.5 bg-cesar-darker border border-white/10 rounded-full px-1.5 py-0.5 text-[9px] shadow-sm z-10 cursor-pointer hover:bg-white/5 transition ${isMe ? "left-2" : "right-2"}`}
+                      >
+                        <span className="flex items-center gap-0.5 select-none">
+                          {uniqueEmojis.slice(0, 3).map((emoji, i) => (
+                            <span key={i}>{emoji}</span>
+                          ))}
+                        </span>
+                        <span className="text-cesar-cyan font-bold mr-0.5">{totalReacts}</span>
+                      </button>
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center gap-1 mt-1 px-1 text-[10px] text-cesar-gray justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setActiveReactMenu(activeReactMenu === msg.id ? null : msg.id)}
+                    className="transition text-cesar-gray hover:text-cesar-cyan p-0.5 mr-1"
+                    title={i18n.language === "ar" ? "تفاعل" : "React"}
+                  >
+                    <SmilePlus className="h-3.5 w-3.5" />
+                  </button>
                   <span>{formatTime(msg.timestamp)}</span>
                   {isMe && (() => {
                     const readCount = msg.readBy ? Object.keys(msg.readBy).filter(id => id !== currentUser?._id).length : 0;
-                    const isReadByAll = participants.length > 1 ? readCount >= participants.length - 1 : false;
+                    
+                    let isReadByAll = false;
+                    if (isMediationRoom) {
+                      isReadByAll = participants.length > 1 ? readCount >= participants.length - 1 : false;
+                    } else {
+                      isReadByAll = readCount > 0;
+                    }
                     
                     if (isReadByAll) {
                       return <CheckCheck className="h-3.5 w-3.5 text-cesar-cyan shrink-0 animate-pulse" />;
@@ -686,6 +784,78 @@ const ChatPage = () => {
           </div>
         </div>
       )}
+      {/* Reaction Details Modal */}
+      <AnimatePresence>
+        {reactDetailsModal && (() => {
+          const targetMsg = messages.find(m => m.id === reactDetailsModal);
+          if (!targetMsg) return null;
+
+          const reactsEntries = Object.entries(targetMsg.reacts || {});
+
+          return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setReactDetailsModal(null)}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-xs overflow-hidden rounded-[2rem] border border-white/10 bg-cesar-dark p-6 shadow-2xl text-right"
+              >
+                <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-3">
+                  <button
+                    onClick={() => setReactDetailsModal(null)}
+                    className="rounded-xl p-1 bg-white/5 text-cesar-gray hover:text-white transition"
+                  >
+                    <X className="h-5 w-5"/>
+                  </button>
+                  <h3 className="text-lg font-bold text-white font-cairo">
+                    {i18n.language === "ar" ? "التفاعلات" : "Reactions"}
+                  </h3>
+                </div>
+
+                <div className="space-y-4 max-h-60 overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
+                  {reactsEntries.map(([userId, reactType]) => {
+                    const isMe = userId === currentUser?._id;
+                    const displayName = isMe ? (i18n.language === "ar" ? "أنت" : "You") : getSenderName(userId);
+                    
+                    let userImage = "";
+                    if (userId === adminId) {
+                      userImage = "/favicon.png";
+                    } else if (isMe) {
+                      userImage = currentUser?.profilePictureUrl;
+                    } else if (userId === targetUser?._id) {
+                      userImage = targetUser?.profilePictureUrl;
+                    } else {
+                      const mUser = mediatorUsers.find(u => u._id === userId);
+                      if (mUser) userImage = mUser.profilePictureUrl;
+                    }
+
+                    return (
+                      <div key={userId} className="flex items-center justify-between font-cairo">
+                        <div className="flex items-center gap-3">
+                          {userImage ? (
+                            <img
+                              src={userId === adminId ? userImage : optimizeImage(userImage)}
+                              alt={displayName}
+                              className="h-10 w-10 rounded-full object-cover border border-white/10 bg-cesar-darker/50 p-1"
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 border border-white/10 text-cesar-gray">
+                              <User className="h-5 w-5"/>
+                            </div>
+                          )}
+                          <span className="text-sm font-bold text-slate-200">{displayName}</span>
+                        </div>
+                        <span className="text-2xl">{reactEmojis[reactType]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 };
