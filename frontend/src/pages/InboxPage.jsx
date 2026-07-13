@@ -15,142 +15,246 @@ const InboxPage = () => {
 
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
   const usersCacheRef = useRef({});
 
+  const [userChatsKeys, setUserChatsKeys] = useState([]);
+  const [chatsData, setChatsData] = useState({});
+  const activeListenersRef = useRef({});
+
+  // 1. Listen to userChats to get the chat IDs the user is involved in
   useEffect(() => {
     if (!currentUser?._id) {
       setLoading(false);
+      setIsInitialFetchDone(true);
       return;
     }
 
-    const chatsRef = ref(db, "chats");
-    const unsubscribe = onValue(chatsRef, async (snapshot) => {
+    const userChatsRef = ref(db, `userChats/${currentUser._id}`);
+    const unsubscribeUserChats = onValue(userChatsRef, (snapshot) => {
       const data = snapshot.val();
+      setIsInitialFetchDone(true);
       if (!data) {
-        setConversations([]);
+        setUserChatsKeys([]);
+        setChatsData({});
         setLoading(false);
         return;
       }
 
-      const chatList = [];
+      const keys = Object.keys(data);
+      setUserChatsKeys(keys);
+    }, (error) => {
+      console.error("Error reading userChats:", error);
+      setIsInitialFetchDone(true);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubscribeUserChats();
+    };
+  }, [currentUser]);
+
+  // 2. Set up dynamic listeners for each chat ID in userChatsKeys
+  useEffect(() => {
+    if (userChatsKeys.length === 0) {
+      setChatsData({});
+      return;
+    }
+
+    // Clean up listeners that are no longer in userChatsKeys
+    const keysSet = new Set(userChatsKeys);
+    Object.keys(activeListenersRef.current).forEach((chatId) => {
+      if (!keysSet.has(chatId)) {
+        activeListenersRef.current[chatId](); // Call unsubscribe
+        delete activeListenersRef.current[chatId];
+        setChatsData((prev) => {
+          const next = { ...prev };
+          delete next[chatId];
+          return next;
+        });
+      }
+    });
+
+    // Subscribe to new keys
+    userChatsKeys.forEach((chatId) => {
+      if (!activeListenersRef.current[chatId]) {
+        const chatRef = ref(db, `chats/${chatId}`);
+        const unsubscribe = onValue(chatRef, (snapshot) => {
+          const val = snapshot.val();
+          setChatsData((prev) => {
+            return {
+              ...prev,
+              [chatId]: val || { _isEmpty: true },
+            };
+          });
+        }, (error) => {
+          console.error(`Error reading chat ${chatId}:`, error);
+        });
+        activeListenersRef.current[chatId] = unsubscribe;
+      }
+    });
+
+    return () => {
+      // Unsubscribe map is preserved and cleaned up in separate effect or on unmount
+    };
+  }, [userChatsKeys]);
+
+  // Clean up all active chat listeners on unmount or user change
+  useEffect(() => {
+    return () => {
+      Object.keys(activeListenersRef.current).forEach((chatId) => {
+        activeListenersRef.current[chatId]();
+      });
+      activeListenersRef.current = {};
+    };
+  }, [currentUser]);
+
+  // 3. Resolve user details and structure conversations list
+  useEffect(() => {
+    let isMounted = true;
+    
+    // If we have keys, wait until we have chat data for all of them to prevent premature empty states
+    if (userChatsKeys.length > 0 && Object.keys(chatsData).length < userChatsKeys.length) {
+      return;
+    }
+
+    // If userChatsKeys has no items, we are done loading and have no conversations
+    if (userChatsKeys.length === 0) {
+      setConversations([]);
+      setLoading(false);
+      return;
+    }
+
+    const resolveUsersAndConversations = async () => {
       const adminId = import.meta.env.VITE_ADMIN_ID;
-      Object.keys(data).forEach((chatId) => {
+      const isAdminUser = currentUser?._id === adminId;
+
+      // Identify missing user IDs to fetch
+      const userIdsToFetch = new Set();
+      const chatItems = [];
+
+      Object.keys(chatsData).forEach((chatId) => {
+        const chat = chatsData[chatId];
+        if (!chat || chat._isEmpty) return; // Skip empty/deleted chats
+
         const isParticipant = chatId.includes(currentUser._id);
-        const isMediatedChat = data[chatId]?.isMediated === true;
-        const isAdminUser = currentUser._id === adminId;
+        const isMediatedChat = chat?.isMediated === true;
 
         if (isParticipant || (isAdminUser && isMediatedChat)) {
           const parts = chatId.split("_");
           const otherUserId = parts[0] === currentUser._id ? parts[1] : parts[0];
-          chatList.push({
+          
+          chatItems.push({
             chatId,
             otherUserId,
-            rawChat: data[chatId],
+            rawChat: chat,
             isMediated: isMediatedChat,
             isDirectChat: isParticipant && !isMediatedChat,
             userAId: parts[0],
             userBId: parts[1]
           });
+
+          if (isMediatedChat && !isParticipant) {
+            if (!usersCacheRef.current[parts[0]]) {
+              userIdsToFetch.add(parts[0]);
+            }
+            if (!usersCacheRef.current[parts[1]]) {
+              userIdsToFetch.add(parts[1]);
+            }
+          } else {
+            if (!usersCacheRef.current[otherUserId]) {
+              userIdsToFetch.add(otherUserId);
+            }
+          }
         }
       });
 
-      try {
-        const resolvedConversations = await Promise.all(
-          chatList.map(async (item) => {
-            let otherUser = null;
-            let userA = null;
-            let userB = null;
-
-            if (item.isMediated && !item.isDirectChat) {
-              // Fetch user A
+      // Fetch missing users concurrently
+      if (userIdsToFetch.size > 0) {
+        try {
+          await Promise.all(
+            Array.from(userIdsToFetch).map(async (userId) => {
               try {
-                userA = usersCacheRef.current[item.userAId];
-                if (!userA) {
-                  const res = await api.get(`/users/${item.userAId}`);
-                  userA = res.data;
-                  usersCacheRef.current[item.userAId] = userA;
-                }
+                const res = await api.get(`/users/${userId}`);
+                usersCacheRef.current[userId] = res.data;
               } catch (err) {
-                console.error(`Error fetching user A ${item.userAId}:`, err);
-                userA = { name: i18n.language === "ar" ? "مستخدم أ" : "User A" };
-              }
-
-              // Fetch user B
-              try {
-                userB = usersCacheRef.current[item.userBId];
-                if (!userB) {
-                  const res = await api.get(`/users/${item.userBId}`);
-                  userB = res.data;
-                  usersCacheRef.current[item.userBId] = userB;
-                }
-              } catch (err) {
-                console.error(`Error fetching user B ${item.userBId}:`, err);
-                userB = { name: i18n.language === "ar" ? "مستخدم ب" : "User B" };
-              }
-            } else {
-              try {
-                otherUser = usersCacheRef.current[item.otherUserId];
-                if (!otherUser) {
-                  const res = await api.get(`/users/${item.otherUserId}`);
-                  otherUser = res.data;
-                  usersCacheRef.current[item.otherUserId] = otherUser;
-                }
-              } catch (err) {
-                console.error(`Error fetching user ${item.otherUserId}:`, err);
-                otherUser = {
-                  _id: item.otherUserId,
+                console.error(`Error fetching user ${userId}:`, err);
+                // Set fallback
+                usersCacheRef.current[userId] = {
+                  _id: userId,
                   name: i18n.language === "ar" ? "مستخدم غير معروف" : "Unknown User",
                   profilePictureUrl: "",
                 };
               }
-            }
-
-            const msgsObj = item.rawChat.messages || {};
-            const msgsList = Object.keys(msgsObj).map((key) => ({
-              id: key,
-              ...msgsObj[key],
-            }));
-
-            msgsList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-            const lastMsg = msgsList[msgsList.length - 1] || null;
-
-            const unreadCount = Object.values(msgsObj).filter(
-              (msg) => msg.senderId !== currentUser._id && !(msg.readBy && msg.readBy[currentUser._id])
-            ).length;
-
-            return {
-              chatId: item.chatId,
-              isMediated: item.isMediated,
-              isDirectChat: item.isDirectChat,
-              otherUser,
-              userA,
-              userB,
-              lastMessage: lastMsg,
-              unreadCount,
-            };
-          })
-        );
-
-        // Filter conversations to only show ones that have at least one message
-        const activeConversations = resolvedConversations.filter(c => c.lastMessage !== null);
-
-        // Sort: newest first
-        activeConversations.sort((a, b) => {
-          const timeA = a.lastMessage?.timestamp || 0;
-          const timeB = b.lastMessage?.timestamp || 0;
-          return timeB - timeA;
-        });
-
-        setConversations(activeConversations);
-      } catch (err) {
-        console.error("Error resolving conversations:", err);
-      } finally {
-        setLoading(false);
+            })
+          );
+        } catch (err) {
+          console.error("Error during batch user details resolution:", err);
+        }
       }
-    });
 
-    return () => unsubscribe();
-  }, [currentUser, i18n.language]);
+      if (!isMounted) return;
+
+      // Map and structure resolved conversations
+      const resolvedList = chatItems.map((item) => {
+        let otherUser = null;
+        let userA = null;
+        let userB = null;
+
+        if (item.isMediated && !item.isDirectChat) {
+          userA = usersCacheRef.current[item.userAId] || { name: i18n.language === "ar" ? "مستخدم أ" : "User A" };
+          userB = usersCacheRef.current[item.userBId] || { name: i18n.language === "ar" ? "مستخدم ب" : "User B" };
+        } else {
+          otherUser = usersCacheRef.current[item.otherUserId] || {
+            _id: item.otherUserId,
+            name: i18n.language === "ar" ? "مستخدم غير معروف" : "Unknown User",
+            profilePictureUrl: "",
+          };
+        }
+
+        const msgsObj = item.rawChat.messages || {};
+        const msgsList = Object.keys(msgsObj).map((key) => ({
+          id: key,
+          ...msgsObj[key],
+        }));
+
+        msgsList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        const lastMsg = msgsList[msgsList.length - 1] || null;
+
+        const unreadCount = Object.values(msgsObj).filter(
+          (msg) => msg.senderId !== currentUser._id && !(msg.readBy && msg.readBy[currentUser._id])
+        ).length;
+
+        return {
+          chatId: item.chatId,
+          isMediated: item.isMediated,
+          isDirectChat: item.isDirectChat,
+          otherUser,
+          userA,
+          userB,
+          lastMessage: lastMsg,
+          unreadCount,
+        };
+      });
+
+      // Filter and sort
+      const activeConversations = resolvedList.filter((c) => c.lastMessage !== null);
+      activeConversations.sort((a, b) => {
+        const timeA = a.lastMessage?.timestamp || 0;
+        const timeB = b.lastMessage?.timestamp || 0;
+        return timeB - timeA;
+      });
+
+      setConversations(activeConversations);
+      setLoading(false);
+    };
+
+    resolveUsersAndConversations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [chatsData, currentUser, i18n.language]);
 
   const formatTime = (timestamp) => {
     if (!timestamp) return "";
@@ -191,9 +295,11 @@ const InboxPage = () => {
           <div className="pointer-events-none absolute -right-24 top-6 h-56 w-56 rounded-full bg-cesar-cyan/10 blur-3xl" />
           
           <div className="flex items-center gap-4 text-right">
-            <div className="inline-flex shrink-0 h-14 w-14 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan">
-              <MessageSquare className="h-7 w-7" />
-            </div>
+            <img
+              src="/default-avatar.png"
+              alt="Avatar"
+              className="inline-flex shrink-0 h-20 w-20 rounded-2xl border border-cesar-cyan/20 bg-cesar-darker/50 p-1 shadow-neon-cyan object-cover"
+            />
             <div>
               <h1 className="text-2xl font-bold text-white md:text-3xl">
                 {i18n.language === "ar" ? "الرسائل الواردة" : "Inbox Messages"}
@@ -208,16 +314,29 @@ const InboxPage = () => {
         </section>
 
         {/* Content Area */}
-        {loading ? (
-          <div className="flex min-h-[30vh] items-center justify-center rounded-[2rem] border border-white/5 bg-cesar-dark/70 backdrop-blur-md">
-            <div className="flex items-center gap-3 text-cesar-cyan">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="text-sm font-medium">
-                {i18n.language === "ar" ? "جارٍ تحميل المحادثات..." : "Loading conversations..."}
-              </span>
-            </div>
+        {!isInitialFetchDone || loading ? (
+          <div className="rounded-[2rem] border border-white/5 bg-cesar-dark/85 overflow-hidden shadow-2xl backdrop-blur-md divide-y divide-white/5">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center justify-between p-4 sm:p-5">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  {/* Avatar Skeleton */}
+                  <div className="h-12 w-12 rounded-full bg-white/10 animate-pulse shrink-0" />
+                  
+                  {/* Text Skeleton */}
+                  <div className="flex-1 min-w-0 text-right">
+                    <div className="h-4 w-32 bg-white/10 rounded animate-pulse mb-2.5 ml-auto sm:ml-0" />
+                    <div className="h-3.5 w-48 bg-white/5 rounded animate-pulse ml-auto sm:ml-0" />
+                  </div>
+                </div>
+                
+                {/* Time Skeleton */}
+                <div className="shrink-0 flex flex-col items-end mr-4">
+                  <div className="h-3 w-12 bg-white/5 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
-        ) : conversations.length === 0 ? (
+        ) : isInitialFetchDone && conversations.length === 0 ? (
           <div className="rounded-[2rem] border border-white/5 bg-cesar-dark/70 p-12 text-center shadow-2xl backdrop-blur-md">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan">
               <MessageSquare className="h-8 w-8" />

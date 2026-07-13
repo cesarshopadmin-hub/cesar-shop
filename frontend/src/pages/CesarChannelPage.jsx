@@ -17,9 +17,10 @@ import {
   User,
   Ban,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Edit
 } from "lucide-react";
-import { ref, onValue, push, serverTimestamp, set, update, remove } from "firebase/database";
+import { ref, onValue, push, serverTimestamp, set, update, remove, query, limitToLast } from "firebase/database";
 import { toast } from "react-toastify";
 import { db } from "../Services/firebase";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -58,10 +59,15 @@ const CesarChannelPage = () => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
 
+  // Edit/Delete Post State
+  const [postToDelete, setPostToDelete] = useState(null);
+  const [editPostData, setEditPostData] = useState(null); // { id, text }
+  const [isUpdatingPost, setIsUpdatingPost] = useState(false);
+
   // Fetch posts from Firebase Realtime Database
   useEffect(() => {
-    const postsRef = ref(db, "cesar_channel/posts");
-    const unsubscribe = onValue(postsRef, (snapshot) => {
+    const postsQuery = query(ref(db, "cesar_channel/posts"), limitToLast(30));
+    const unsubscribe = onValue(postsQuery, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const postList = Object.keys(data).map((key) => ({
@@ -303,6 +309,41 @@ const CesarChannelPage = () => {
     }
   };
 
+  const confirmDeletePost = async () => {
+    if (!postToDelete) return;
+    try {
+      await remove(ref(db, `cesar_channel/posts/${postToDelete}`));
+      toast.success(i18n.language === "ar" ? "تم حذف المنشور بنجاح!" : "Post deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting post:", err);
+      toast.error(i18n.language === "ar" ? "تعذر حذف المنشور" : "Failed to delete post");
+    } finally {
+      setPostToDelete(null);
+    }
+  };
+
+  const handleUpdatePost = async (e) => {
+    e.preventDefault();
+    if (!editPostData || !editPostData.text.trim()) {
+      toast.error(i18n.language === "ar" ? "يرجى كتابة نص للمنشور" : "Please enter text for the post");
+      return;
+    }
+
+    setIsUpdatingPost(true);
+    try {
+      await update(ref(db, `cesar_channel/posts/${editPostData.id}`), {
+        text: editPostData.text.trim()
+      });
+      toast.success(i18n.language === "ar" ? "تم تحديث المنشور بنجاح!" : "Post updated successfully!");
+      setEditPostData(null);
+    } catch (err) {
+      console.error("Error updating post:", err);
+      toast.error(i18n.language === "ar" ? "تعذر تحديث المنشور" : "Failed to update post");
+    } finally {
+      setIsUpdatingPost(false);
+    }
+  };
+
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
@@ -426,6 +467,26 @@ const CesarChannelPage = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Actions for Admin */}
+                  {isAdmin && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEditPostData({ id: post.id, text: post.text })}
+                        className="rounded-lg p-1.5 bg-white/5 text-cesar-gray hover:text-cesar-cyan hover:bg-cesar-cyan/10 transition"
+                        title={i18n.language === "ar" ? "تعديل" : "Edit"}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setPostToDelete(post.id)}
+                        className="rounded-lg p-1.5 bg-white/5 text-cesar-gray hover:text-red-500 hover:bg-red-500/10 transition"
+                        title={i18n.language === "ar" ? "حذف" : "Delete"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Post Body (Text) */}
@@ -931,7 +992,7 @@ const CesarChannelPage = () => {
                   <AlertTriangle className="h-7 w-7" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">
+                  <h3 className="text-lg font-bold text-white font-cairo">
                     {i18n.language === "ar" ? "تأكيد مسح التعليق" : "Confirm Delete Comment"}
                   </h3>
                   <p className="mt-2 text-xs leading-5 text-cesar-gray">
@@ -956,6 +1017,110 @@ const CesarChannelPage = () => {
                   {i18n.language === "ar" ? "إلغاء" : "Cancel"}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Post Confirmation Modal */}
+      <AnimatePresence>
+        {postToDelete && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-cesar-dark p-6 shadow-2xl text-center"
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+              
+              <div className="flex flex-col items-center gap-4 mt-2 mb-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                  <AlertTriangle className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white font-cairo">
+                    {i18n.language === "ar" ? "تأكيد حذف المنشور" : "Confirm Delete Post"}
+                  </h3>
+                  <p className="mt-2 text-xs leading-5 text-cesar-gray font-cairo">
+                    {i18n.language === "ar"
+                      ? "هل أنت متأكد أنك تريد حذف هذا المنشور وجميع تفاعلاته نهائياً؟"
+                      : "Are you sure you want to permanently delete this post and all its reactions?"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 font-cairo">
+                <button
+                  onClick={confirmDeletePost}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20 transition text-sm font-bold text-center"
+                >
+                  {i18n.language === "ar" ? "نعم، احذف" : "Yes, delete"}
+                </button>
+                <button
+                  onClick={() => setPostToDelete(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 text-cesar-gray border border-white/5 hover:bg-white/10 hover:text-white transition text-sm font-bold text-center"
+                >
+                  {i18n.language === "ar" ? "إلغاء" : "Cancel"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Post Modal */}
+      <AnimatePresence>
+        {editPostData && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-cesar-dark p-6 shadow-2xl text-right animate-fadeIn"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-cesar-cyan to-transparent" />
+              
+              <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-3">
+                <button
+                  onClick={() => setEditPostData(null)}
+                  className="rounded-xl p-1 bg-white/5 text-cesar-gray hover:text-white transition animate-pulse"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+                <h3 className="text-lg font-bold text-white font-cairo">
+                  {i18n.language === "ar" ? "تعديل المنشور" : "Edit Post"}
+                </h3>
+              </div>
+
+              <form onSubmit={handleUpdatePost}>
+                <textarea
+                  value={editPostData.text}
+                  onChange={(e) => setEditPostData({ ...editPostData, text: e.target.value })}
+                  placeholder={i18n.language === "ar" ? "اكتب محتوى المنشور الجديد..." : "Write your new post content..."}
+                  className="w-full min-h-[120px] rounded-2xl border border-white/10 bg-black/45 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-cesar-cyan transition text-right resize-none font-cairo"
+                  rows="4"
+                />
+
+                <div className="flex gap-3 mt-5 font-cairo">
+                  <button
+                    type="submit"
+                    disabled={isUpdatingPost || !editPostData.text.trim()}
+                    className="flex-1 py-2.5 rounded-xl border border-cesar-cyan/50 bg-cesar-cyan/10 text-cesar-cyan hover:bg-cesar-cyan/20 transition text-sm font-bold text-center flex items-center justify-center gap-2"
+                  >
+                    {isUpdatingPost && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <span>{i18n.language === "ar" ? "حفظ التغييرات" : "Save Changes"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditPostData(null)}
+                    className="flex-1 py-2.5 rounded-xl bg-white/5 text-cesar-gray border border-white/5 hover:bg-white/10 hover:text-white transition text-sm font-bold text-center"
+                  >
+                    {i18n.language === "ar" ? "إلغاء" : "Cancel"}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Home, LayoutList, PlusSquare, User, LogIn, UserPlus, LogOut, Shield, MessageSquare, Megaphone } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next";
 import CesarLogo from "../CesarLogo";
 import FloatingWarning from "../ui/FloatingWarning";
 import { ref, onValue } from "firebase/database";
-import { db } from "../../Services/firebase";
+import { db, auth } from "../../Services/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 // import ParticleBackground from "./ParticleBackground";
 
 function MainLayout() {
@@ -22,43 +23,130 @@ function MainLayout() {
   const isAdmin = currentUser?.role === "admin";
 
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
 
+  // Listen to auth state to prevent premature reads causing permission_denied errors
   useEffect(() => {
-    if (!currentUser?._id) {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setIsFirebaseReady(!!firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const [userChatsKeys, setUserChatsKeys] = useState([]);
+  const [chatsData, setChatsData] = useState({});
+  const activeListenersRef = useRef({});
+
+  // 1. Listen to userChats to get the chat IDs the user is involved in
+  useEffect(() => {
+    if (!currentUser?._id || !isFirebaseReady) {
+      setUserChatsKeys([]);
+      setChatsData({});
+      setUnreadCount(0);
+      return;
+    }
+
+    const userChatsRef = ref(db, `userChats/${currentUser._id}`);
+    const unsubscribeUserChats = onValue(userChatsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        setUserChatsKeys([]);
+        setChatsData({});
+        setUnreadCount(0);
+        return;
+      }
+
+      const keys = Object.keys(data);
+      setUserChatsKeys(keys);
+    }, (error) => {
+      console.error("Error reading userChats in header:", error);
+    });
+
+    return () => {
+      unsubscribeUserChats();
+    };
+  }, [currentUser, isFirebaseReady]);
+
+  // 2. Set up dynamic listeners for each chat ID in userChatsKeys
+  useEffect(() => {
+    if (userChatsKeys.length === 0) {
+      setChatsData({});
+      return;
+    }
+
+    const keysSet = new Set(userChatsKeys);
+    Object.keys(activeListenersRef.current).forEach((chatId) => {
+      if (!keysSet.has(chatId)) {
+        activeListenersRef.current[chatId](); // Call unsubscribe
+        delete activeListenersRef.current[chatId];
+        setChatsData((prev) => {
+          const next = { ...prev };
+          delete next[chatId];
+          return next;
+        });
+      }
+    });
+
+    userChatsKeys.forEach((chatId) => {
+      if (!activeListenersRef.current[chatId]) {
+        const chatRef = ref(db, `chats/${chatId}`);
+        const unsubscribe = onValue(chatRef, (snapshot) => {
+          const val = snapshot.val();
+          setChatsData((prev) => {
+            return {
+              ...prev,
+              [chatId]: val || { _isEmpty: true },
+            };
+          });
+        }, (error) => {
+          console.error(`Error reading chat ${chatId} in header:`, error);
+        });
+        activeListenersRef.current[chatId] = unsubscribe;
+      }
+    });
+
+    return () => {};
+  }, [userChatsKeys]);
+
+  // Clean up all active chat listeners on unmount or user change
+  useEffect(() => {
+    return () => {
+      Object.keys(activeListenersRef.current).forEach((chatId) => {
+        activeListenersRef.current[chatId]();
+      });
+      activeListenersRef.current = {};
+    };
+  }, [currentUser]);
+
+  // 3. Sum up unread counts across all chats in chatsData
+  useEffect(() => {
+    if (!currentUser || !currentUser._id) {
       setUnreadCount(0);
       return;
     }
 
     const adminId = import.meta.env.VITE_ADMIN_ID;
+    const isAdminUser = currentUser?._id === adminId;
+    let total = 0;
 
-    const chatsRef = ref(db, "chats");
-    const unsubscribe = onValue(chatsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data) {
-        setUnreadCount(0);
-        return;
+    Object.keys(chatsData).forEach((chatId) => {
+      const chat = chatsData[chatId];
+      if (!chat || chat._isEmpty) return;
+
+      const isParticipant = chatId.includes(currentUser?._id);
+      const isMediatedChat = chat.isMediated === true;
+
+      if (isParticipant || (isAdminUser && isMediatedChat)) {
+        const messagesObj = chat.messages || {};
+        const count = Object.values(messagesObj).filter(
+          (msg) => msg.senderId !== currentUser?._id && !(msg.readBy && msg.readBy[currentUser?._id])
+        ).length;
+        total += count;
       }
-
-      let total = 0;
-      Object.keys(data).forEach((chatId) => {
-        const isParticipant = chatId.includes(currentUser._id);
-        const isMediatedChat = data[chatId]?.isMediated === true;
-        const isAdminUser = currentUser._id === adminId;
-
-        if (isParticipant || (isAdminUser && isMediatedChat)) {
-          const chat = data[chatId];
-          const messagesObj = chat.messages || {};
-          const count = Object.values(messagesObj).filter(
-            (msg) => msg.senderId !== currentUser._id && !(msg.readBy && msg.readBy[currentUser._id])
-          ).length;
-          total += count;
-        }
-      });
-      setUnreadCount(total);
     });
 
-    return () => unsubscribe();
-  }, [currentUser]);
+    setUnreadCount(total);
+  }, [chatsData, currentUser]);
 
   const handleLogout = () => {
     logout();

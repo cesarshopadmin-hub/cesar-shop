@@ -10,6 +10,7 @@ import ticketRoutes from "./routes/ticketRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import scammerRoutes from "./routes/scammerRoutes.js";
 import linkRoutes from "./routes/linkRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 import { errorHandler } from "./middlewares/errorMiddleware.js";
 import { setupSwagger } from "./swagger.js";
 
@@ -38,6 +39,7 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/scammers", scammerRoutes);
 app.use("/api/links", linkRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Setup Swagger Documentation
 setupSwagger(app);

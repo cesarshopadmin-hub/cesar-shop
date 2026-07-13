@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck, ShieldAlert, SmilePlus } from "lucide-react";
-import { ref, onValue, push, serverTimestamp, update, set, remove } from "firebase/database";
+import { ref, onValue, push, serverTimestamp, update, set, remove, query, limitToLast, get } from "firebase/database";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { db } from "../Services/firebase";
@@ -37,6 +37,7 @@ const ChatPage = () => {
   const [activeReactMenu, setActiveReactMenu] = useState(null);
   const [reactDetailsModal, setReactDetailsModal] = useState(null);
   const [showMediationModal, setShowMediationModal] = useState(false);
+  const [isCooldown, setIsCooldown] = useState(false);
 
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -132,8 +133,8 @@ const ChatPage = () => {
   useEffect(() => {
     if (!chatId) return;
 
-    const messagesRef = ref(db, `chats/${chatId}/messages`);
-    const unsubscribe = onValue(messagesRef, (snapshot) => {
+    const messagesQuery = query(ref(db, `chats/${chatId}/messages`), limitToLast(50));
+    const unsubscribe = onValue(messagesQuery, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         // Convert object of objects to array
@@ -217,8 +218,14 @@ const ChatPage = () => {
   };
 
   const confirmMediation = async () => {
+    const parts = chatId.split("_");
+    if (parts.length < 2) return;
+
+    const userAId = parts[0];
+    const userBId = parts[1];
+
     const updatedParticipants = Array.from(
-      new Set([...participants, currentUser._id, targetUserId, adminId])
+      new Set([userAId, userBId, adminId])
     );
 
     const messagesRef = ref(db, `chats/${chatId}/messages`);
@@ -227,7 +234,10 @@ const ChatPage = () => {
     const updates = {};
     updates[`chats/${chatId}/participants`] = updatedParticipants;
     updates[`chats/${chatId}/isMediated`] = true;
-    updates[`userChats/${adminId}/${chatId}`] = true;
+    
+    updatedParticipants.forEach((pId) => {
+      updates[`userChats/${pId}/${chatId}`] = true;
+    });
     updates[`chats/${chatId}/messages/${newMsgRef.key}`] = {
       senderId: "system",
       text: "تم طلب تدخل الإدارة. سينضم إليكم أحد المشرفين قريباً للوساطة.",
@@ -251,7 +261,9 @@ const ChatPage = () => {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage(e);
+      if (!isCooldown) {
+        handleSendMessage(e);
+      }
     }
   };
 
@@ -274,13 +286,37 @@ const ChatPage = () => {
   // Handle message sending (including optional image uploading)
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
+    if (isCooldown) return;
     if (!newMessage.trim() && selectedFiles.length === 0) return;
     if (!chatId || !currentUser) return;
+
+    let todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format (local time)
+    let currentUploadCount = 0;
+
+    if (selectedFiles.length > 0) {
+      setIsUploadingImage(true);
+      try {
+        const limitRef = ref(db, `user_limits/${currentUser._id}/daily_images`);
+        const limitSnapshot = await get(limitRef);
+        const limitData = limitSnapshot.val();
+
+        if (limitData && limitData.date === todayStr) {
+          currentUploadCount = limitData.count || 0;
+        }
+
+        if (currentUploadCount + selectedFiles.length > 20) {
+          toast.error("لقد وصلت للحد الأقصى لرفع الصور اليوم (20 صورة).");
+          setIsUploadingImage(false);
+          return;
+        }
+      } catch (err) {
+        console.error("Error checking image upload limits:", err);
+      }
+    }
 
     let optimizedUrlsArray = [];
 
     if (selectedFiles.length > 0) {
-      setIsUploadingImage(true);
       try {
         const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
         const uploadPreset = import.meta.env.VITE_CLOUDINARY_CHAT_PRESET || "chat_media";
@@ -338,8 +374,33 @@ const ChatPage = () => {
       messageData.images = optimizedUrlsArray;
     }
 
+    const newMsgKey = push(messagesRef).key;
+    const updates = {};
+    updates[`chats/${chatId}/messages/${newMsgKey}`] = messageData;
+
+    if (isMediationRoom) {
+      participants.forEach((pId) => {
+        updates[`userChats/${pId}/${chatId}`] = true;
+      });
+    } else {
+      updates[`userChats/${currentUser._id}/${chatId}`] = true;
+      updates[`userChats/${targetUserId}/${chatId}`] = true;
+    }
+
+    if (selectedFiles.length > 0) {
+      updates[`user_limits/${currentUser._id}/daily_images`] = {
+        date: todayStr,
+        count: currentUploadCount + selectedFiles.length
+      };
+    }
+
     try {
-      await push(messagesRef, messageData);
+      setIsCooldown(true);
+      setTimeout(() => {
+        setIsCooldown(false);
+      }, 1000);
+
+      await update(ref(db), updates);
       setNewMessage("");
       setSelectedFiles([]);
       if (textareaRef.current) {
@@ -700,8 +761,12 @@ const ChatPage = () => {
           />
           <button
             type="submit"
-            disabled={!newMessage.trim() && selectedFiles.length === 0}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cesar-cyan/30 bg-cesar-cyan/10 text-cesar-cyan hover:bg-cesar-cyan/20 hover:shadow-neon-cyan transition duration-300 disabled:opacity-40 disabled:hover:shadow-none"
+            disabled={(!newMessage.trim() && selectedFiles.length === 0) || isCooldown}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition duration-300 ${
+              isCooldown 
+                ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-500" 
+                : "border-cesar-cyan/30 bg-cesar-cyan/10 text-cesar-cyan hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
+            } disabled:opacity-40 disabled:hover:shadow-none`}
           >
             <Send className="h-5 w-5" />
           </button>

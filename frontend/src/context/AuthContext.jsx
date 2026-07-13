@@ -1,5 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../Services/api';
+import { signInWithCustomToken, signOut } from 'firebase/auth';
+import { auth } from '../Services/firebase';
 
 const AuthContext = createContext();
 
@@ -16,6 +18,28 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => {
     return localStorage.getItem('token') || null;
   });
+
+  // Handle Firebase custom token authentication
+  useEffect(() => {
+    if (!token) {
+      signOut(auth).catch((err) => console.error("Firebase signOut error:", err));
+      return;
+    }
+
+    const authenticateFirebase = async () => {
+      try {
+        const res = await api.get('/chat/firebase-token');
+        const { firebaseToken } = res.data;
+        if (firebaseToken) {
+          await signInWithCustomToken(auth, firebaseToken);
+        }
+      } catch (err) {
+        console.error("Failed to authenticate with Firebase custom token:", err);
+      }
+    };
+
+    authenticateFirebase();
+  }, [token]);
 
   const login = async (identifier, password) => {
     const response = await api.post('/auth/login', { identifier, password });
@@ -48,14 +72,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+    signOut(auth).catch((err) => console.error("Firebase signOut error:", err));
   };
+
   const updateUser = (newUserData) => {
-  setUser((prevUser) => {
-    const updated = { ...prevUser, ...newUserData };
-    localStorage.setItem('user', JSON.stringify(updated));
-    return updated;
-  });
-};
+    setUser((prevUser) => {
+      const updated = { ...prevUser, ...newUserData };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   return (
     <AuthContext.Provider value={{ user, token, login, register, logout, updateUser }}>
