@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import imageCompression from "browser-image-compression";
-import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck, ShieldAlert, SmilePlus } from "lucide-react";
+import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck, ShieldAlert, SmilePlus, Trash2, Ban, AlertTriangle } from "lucide-react";
 import { ref, onValue, push, serverTimestamp, update, set, remove, query, limitToLast, get } from "firebase/database";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
@@ -39,6 +39,7 @@ const ChatPage = () => {
   const [reactDetailsModal, setReactDetailsModal] = useState(null);
   const [showMediationModal, setShowMediationModal] = useState(false);
   const [isCooldown, setIsCooldown] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState(null); // { id, imageInfo }
 
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -258,6 +259,43 @@ const ChatPage = () => {
     }
   };
 
+
+  const handleSoftDeleteMessage = async (msgId, imageInfo) => {
+    try {
+      const msgRef = ref(db, `chats/${chatId}/messages/${msgId}`);
+      await update(msgRef, {
+        text: i18n.language === "ar" ? "تم حذف هذه الرسالة" : "This message was deleted",
+        isDeleted: true,
+        imageUrl: null,
+        images: null,
+        reacts: null
+      });
+
+      // Task 3: Cloudinary cleanup
+      if (imageInfo) {
+        if (Array.isArray(imageInfo)) {
+          for (const imgUrl of imageInfo) {
+            try {
+              await api.post("/chat/delete-image", { imageUrl: imgUrl });
+            } catch (err) {
+              console.error("Cloudinary image deletion failed:", err);
+            }
+          }
+        } else if (typeof imageInfo === "string") {
+          try {
+            await api.post("/chat/delete-image", { imageUrl: imageInfo });
+          } catch (err) {
+            console.error("Cloudinary image deletion failed:", err);
+          }
+        }
+      }
+
+      toast.success(i18n.language === "ar" ? "تم حذف الرسالة" : "Message deleted");
+    } catch (err) {
+      console.error("Failed to delete message:", err);
+      toast.error(i18n.language === "ar" ? "تعذر حذف الرسالة" : "Failed to delete message");
+    }
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -614,34 +652,43 @@ const ChatPage = () => {
                       : "bg-white/10 text-white border border-white/5 rounded-bl-none"
                   } ${hasImages && !msg.text ? "p-1" : "px-4 py-2.5"}`}
                 >
-                  {msg.imageUrl && !msg.images && (
-                    <img
-                      src={optimizeImage(msg.imageUrl) || msg.imageUrl}
-                      alt="Shared media"
-                      className="rounded-xl max-w-sm w-full object-cover cursor-pointer hover:opacity-90 transition mb-1"
-                      onClick={() => { setViewerImages([msg.imageUrl]); setViewerIndex(0); }}
-                    />
-                  )}
-
-                  {msg.images && msg.images.length > 0 && (
-                    <div
-                      className={`grid gap-1 mb-1 max-w-sm ${
-                        msg.images.length === 1 ? "grid-cols-1" : "grid-cols-2"
-                      }`}
-                    >
-                      {msg.images.map((imgUrl, i) => (
+                  {msg.isDeleted ? (
+                    <p className="text-xs italic text-cesar-gray font-normal flex items-center gap-1.5 leading-relaxed select-none">
+                      <Ban className="h-3.5 w-3.5 text-cesar-gray" />
+                      {msg.text || (i18n.language === "ar" ? "تم حذف هذه الرسالة" : "This message was deleted")}
+                    </p>
+                  ) : (
+                    <>
+                      {msg.imageUrl && !msg.images && (
                         <img
-                          key={i}
-                          src={optimizeImage(imgUrl) || imgUrl}
-                          alt={`Shared media ${i}`}
-                          className="rounded-lg w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition"
-                          onClick={() => { setViewerImages(msg.images); setViewerIndex(i); }}
+                          src={optimizeImage(msg.imageUrl) || msg.imageUrl}
+                          alt="Shared media"
+                          className="rounded-xl max-w-sm w-full object-cover cursor-pointer hover:opacity-90 transition mb-1"
+                          onClick={() => { setViewerImages([msg.imageUrl]); setViewerIndex(0); }}
                         />
-                      ))}
-                    </div>
-                  )}
+                      )}
 
-                  {msg.text && <p>{msg.text}</p>}
+                      {msg.images && msg.images.length > 0 && (
+                        <div
+                          className={`grid gap-1 mb-1 max-w-sm ${
+                            msg.images.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                          }`}
+                        >
+                          {msg.images.map((imgUrl, i) => (
+                            <img
+                              key={i}
+                              src={optimizeImage(imgUrl) || imgUrl}
+                              alt={`Shared media ${i}`}
+                              className="rounded-lg w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition"
+                              onClick={() => { setViewerImages(msg.images); setViewerIndex(i); }}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {msg.text && <p>{msg.text}</p>}
+                    </>
+                  )}
 
                   {/* Reactions Display Badge */}
                   {(() => {
@@ -669,14 +716,26 @@ const ChatPage = () => {
                   })()}
                 </div>
                 <div className="flex items-center gap-1 mt-1 px-1 text-[10px] text-cesar-gray justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setActiveReactMenu(activeReactMenu === msg.id ? null : msg.id)}
-                    className="transition text-cesar-gray hover:text-cesar-cyan p-0.5 mr-1"
-                    title={i18n.language === "ar" ? "تفاعل" : "React"}
-                  >
-                    <SmilePlus className="h-3.5 w-3.5" />
-                  </button>
+                  {isMe && !msg.isDeleted && (
+                    <button
+                      type="button"
+                      onClick={() => setMessageToDelete({ id: msg.id, imageInfo: msg.imageUrl || msg.images })}
+                      className="transition text-cesar-gray hover:text-red-500 p-0.5"
+                      title={i18n.language === "ar" ? "حذف الرسالة" : "Delete Message"}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {!msg.isDeleted && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveReactMenu(activeReactMenu === msg.id ? null : msg.id)}
+                      className="transition text-cesar-gray hover:text-cesar-cyan p-0.5 mr-1"
+                      title={i18n.language === "ar" ? "تفاعل" : "React"}
+                    >
+                      <SmilePlus className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                   <span>{formatTime(msg.timestamp)}</span>
                   {isMe && (() => {
                     const readCount = msg.readBy ? Object.keys(msg.readBy).filter(id => id !== currentUser?._id).length : 0;
@@ -929,6 +988,56 @@ const ChatPage = () => {
             </div>
           );
         })()}
+      </AnimatePresence>
+
+      {/* Delete Message Confirmation Modal */}
+      <AnimatePresence>
+        {messageToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-cesar-dark p-6 shadow-2xl text-center"
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+              
+              <div className="flex flex-col items-center gap-4 mt-2 mb-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                  <AlertTriangle className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white font-cairo">
+                    {i18n.language === "ar" ? "حذف الرسالة" : "Delete Message"}
+                  </h3>
+                  <p className="mt-2 text-xs leading-5 text-cesar-gray font-cairo">
+                    {i18n.language === "ar"
+                      ? "هل أنت متأكد أنك تريد حذف هذه الرسالة لدى الجميع؟"
+                      : "Are you sure you want to delete this message for everyone?"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 font-cairo">
+                <button
+                  onClick={() => {
+                    handleSoftDeleteMessage(messageToDelete.id, messageToDelete.imageInfo);
+                    setMessageToDelete(null);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20 transition text-sm font-bold text-center"
+                >
+                  {i18n.language === "ar" ? "حذف للجميع" : "Delete for Everyone"}
+                </button>
+                <button
+                  onClick={() => setMessageToDelete(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 text-cesar-gray border border-white/5 hover:bg-white/10 hover:text-white transition text-sm font-bold text-center"
+                >
+                  {i18n.language === "ar" ? "إلغاء" : "Cancel"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </div>
   );

@@ -5,15 +5,27 @@ import { v2 as cloudinary } from "cloudinary";
 
 const getPublicIdFromUrl = (url) => {
   try {
+    // 1. Remove the transformation segment if it exists (everything between /upload/ and the next slash or version)
     const parts = url.split("/upload/");
     if (parts.length < 2) return null;
-    const pathParts = parts[1].split("/");
-    if (pathParts[0].startsWith("v") && /^\d+$/.test(pathParts[0].substring(1))) {
-      pathParts.shift();
+    
+    let path = parts[1];
+    
+    // 2. Remove transformation string if it's the first segment (e.g., f_auto,q_auto,w_800/)
+    if (path.includes("/") && path.split("/")[0].includes(",")) {
+        path = path.substring(path.indexOf("/") + 1);
     }
-    const filename = pathParts.join("/");
-    return filename.split(".")[0];
-  } catch {
+    
+    // 3. Remove version prefix (e.g., v1783898624/)
+    if (path.startsWith("v")) {
+        const slashIndex = path.indexOf("/");
+        if (slashIndex !== -1) path = path.substring(slashIndex + 1);
+    }
+    
+    // 4. Remove extension
+    return path.substring(0, path.lastIndexOf('.'));
+  } catch (err) {
+    console.error("Error parsing Public ID:", err);
     return null;
   }
 };
