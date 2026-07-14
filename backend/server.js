@@ -24,7 +24,11 @@ const app = express();
 connectDB();
 
 // 2. Middlewares
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
 
 // 3. Test Route
