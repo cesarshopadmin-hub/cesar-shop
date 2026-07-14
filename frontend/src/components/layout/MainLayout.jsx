@@ -5,9 +5,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import CesarLogo from "../CesarLogo";
 import FloatingWarning from "../ui/FloatingWarning";
-import { ref, onValue } from "firebase/database";
-import { db, auth } from "../../Services/firebase";
-import { onAuthStateChanged } from "firebase/auth";
 // import ParticleBackground from "./ParticleBackground";
 
 function MainLayout() {
@@ -22,131 +19,6 @@ function MainLayout() {
   const currentUser = user?.name ? user : user?.user;
   const isAdmin = currentUser?.role === "admin";
 
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
-
-  // Listen to auth state to prevent premature reads causing permission_denied errors
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setIsFirebaseReady(!!firebaseUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const [userChatsKeys, setUserChatsKeys] = useState([]);
-  const [chatsData, setChatsData] = useState({});
-  const activeListenersRef = useRef({});
-
-  // 1. Listen to userChats to get the chat IDs the user is involved in
-  useEffect(() => {
-    if (!currentUser?._id || !isFirebaseReady) {
-      setUserChatsKeys([]);
-      setChatsData({});
-      setUnreadCount(0);
-      return;
-    }
-
-    const userChatsRef = ref(db, `userChats/${currentUser._id}`);
-    const unsubscribeUserChats = onValue(userChatsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data) {
-        setUserChatsKeys([]);
-        setChatsData({});
-        setUnreadCount(0);
-        return;
-      }
-
-      const keys = Object.keys(data);
-      setUserChatsKeys(keys);
-    }, (error) => {
-      console.error("Error reading userChats in header:", error);
-    });
-
-    return () => {
-      unsubscribeUserChats();
-    };
-  }, [currentUser, isFirebaseReady]);
-
-  // 2. Set up dynamic listeners for each chat ID in userChatsKeys
-  useEffect(() => {
-    if (userChatsKeys.length === 0) {
-      setChatsData({});
-      return;
-    }
-
-    const keysSet = new Set(userChatsKeys);
-    Object.keys(activeListenersRef.current).forEach((chatId) => {
-      if (!keysSet.has(chatId)) {
-        activeListenersRef.current[chatId](); // Call unsubscribe
-        delete activeListenersRef.current[chatId];
-        setChatsData((prev) => {
-          const next = { ...prev };
-          delete next[chatId];
-          return next;
-        });
-      }
-    });
-
-    userChatsKeys.forEach((chatId) => {
-      if (!activeListenersRef.current[chatId]) {
-        const chatRef = ref(db, `chats/${chatId}`);
-        const unsubscribe = onValue(chatRef, (snapshot) => {
-          const val = snapshot.val();
-          setChatsData((prev) => {
-            return {
-              ...prev,
-              [chatId]: val || { _isEmpty: true },
-            };
-          });
-        }, (error) => {
-          console.error(`Error reading chat ${chatId} in header:`, error);
-        });
-        activeListenersRef.current[chatId] = unsubscribe;
-      }
-    });
-
-    return () => {};
-  }, [userChatsKeys]);
-
-  // Clean up all active chat listeners on unmount or user change
-  useEffect(() => {
-    return () => {
-      Object.keys(activeListenersRef.current).forEach((chatId) => {
-        activeListenersRef.current[chatId]();
-      });
-      activeListenersRef.current = {};
-    };
-  }, [currentUser]);
-
-  // 3. Sum up unread counts across all chats in chatsData
-  useEffect(() => {
-    if (!currentUser || !currentUser._id) {
-      setUnreadCount(0);
-      return;
-    }
-
-    const adminId = import.meta.env.VITE_ADMIN_ID;
-    const isAdminUser = currentUser?._id === adminId;
-    let total = 0;
-
-    Object.keys(chatsData).forEach((chatId) => {
-      const chat = chatsData[chatId];
-      if (!chat || chat._isEmpty) return;
-
-      const isParticipant = chatId.includes(currentUser?._id);
-      const isMediatedChat = chat.isMediated === true;
-
-      if (isParticipant || (isAdminUser && isMediatedChat)) {
-        const messagesObj = chat.messages || {};
-        const count = Object.values(messagesObj).filter(
-          (msg) => msg.senderId !== currentUser?._id && !(msg.readBy && msg.readBy[currentUser?._id])
-        ).length;
-        total += count;
-      }
-    });
-
-    setUnreadCount(total);
-  }, [chatsData, currentUser]);
 
   const handleLogout = () => {
     logout();
@@ -186,11 +58,6 @@ function MainLayout() {
                 <>
                   <Link to="/inbox" className={`transition hover:text-cesar-cyan relative ${isActive('/inbox') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>
                     {t("nav.inbox")}
-                    {unreadCount > 0 && (
-                      <span className="bg-red-500 text-white text-[9px] h-4 w-4 flex items-center justify-center rounded-full absolute -top-2 -right-3 font-bold scale-90 animate-pulse">
-                        {unreadCount}
-                      </span>
-                    )}
                   </Link>
                   <Link to="/add-post" className={`transition hover:text-cesar-cyan ${isActive('/add-post') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>{t("nav.addPost")}</Link>
                   <Link to="/profile" className={`transition hover:text-cesar-cyan ${isActive('/profile') ? 'text-cesar-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-slate-300'}`}>{t("nav.profile")}</Link>
@@ -266,11 +133,6 @@ function MainLayout() {
               <Link to="/inbox" className="flex flex-col items-center gap-1 w-full pt-2 pb-1 relative">
                 <div className="relative">
                   <MessageSquare className={`h-5 w-5 ${isActive('/inbox') ? 'text-cesar-cyan' : 'text-slate-400'}`} />
-                  {unreadCount > 0 && (
-                    <span className="bg-red-500 text-white text-[9px] h-4 w-4 flex items-center justify-center rounded-full absolute -top-1 -right-2 font-bold animate-pulse">
-                      {unreadCount}
-                    </span>
-                  )}
                 </div>
                 <span className={`text-[10px] font-medium ${isActive('/inbox') ? 'text-cesar-cyan' : 'text-slate-400'}`}>{t("nav.inboxShort")}</span>
                 {isActive('/inbox') && <span className="h-1 w-1 rounded-full bg-cesar-cyan shadow-[0_0_8px_rgba(0,240,255,0.8)] mt-0.5"></span>}

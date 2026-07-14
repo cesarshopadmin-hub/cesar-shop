@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { db } from "../Services/firebase";
 import { useAuth } from "../context/AuthContext.jsx";
+import { usePresence } from "../hooks/usePresence";
 import api from "../Services/api.js";
 import { optimizeImage } from "../utils/imageOptimizer.js";
 
@@ -19,6 +20,7 @@ const ChatPage = () => {
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const currentUser = user?.name ? user : user?.user;
+  usePresence(currentUser?._id, "chat");
   const navigate = useNavigate();
   const adminId = import.meta.env.VITE_ADMIN_ID;
 

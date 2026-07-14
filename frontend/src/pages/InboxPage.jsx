@@ -5,6 +5,7 @@ import { MessageSquare, Loader2, User, ShieldAlert } from "lucide-react";
 import { ref, onValue } from "firebase/database";
 import { db } from "../Services/firebase";
 import { useAuth } from "../context/AuthContext.jsx";
+import { usePresence } from "../hooks/usePresence";
 import api from "../Services/api.js";
 import { optimizeImage } from "../utils/imageOptimizer.js";
 
@@ -12,6 +13,7 @@ const InboxPage = () => {
   const { i18n } = useTranslation();
   const { user } = useAuth();
   const currentUser = user?.name ? user : user?.user;
+  usePresence(currentUser?._id, "inbox");
 
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);

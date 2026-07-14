@@ -24,6 +24,7 @@ import { ref, onValue, push, serverTimestamp, set, update, remove, query, limitT
 import { toast } from "react-toastify";
 import { db } from "../Services/firebase";
 import { useAuth } from "../context/AuthContext.jsx";
+import { usePresence } from "../hooks/usePresence";
 import { optimizeImage } from "../utils/imageOptimizer.js";
 
 const reactEmojis = { like: '👍', love: '❤️', fire: '🔥' };
@@ -32,6 +33,7 @@ const CesarChannelPage = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const currentUser = user?.name ? user : user?.user;
+  usePresence(currentUser?._id, "channel");
   const adminId = import.meta.env.VITE_ADMIN_ID;
   const isAdmin = currentUser?._id === adminId;
 
