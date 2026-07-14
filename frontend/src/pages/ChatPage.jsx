@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import imageCompression from "browser-image-compression";
 import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck, ShieldAlert, SmilePlus } from "lucide-react";
 import { ref, onValue, push, serverTimestamp, update, set, remove, query, limitToLast, get } from "firebase/database";
 import { motion, AnimatePresence } from "framer-motion";
@@ -323,7 +324,15 @@ const ChatPage = () => {
 
         const uploadPromises = selectedFiles.map(async (file) => {
           const formData = new FormData();
-          formData.append("file", file);
+          
+          const options = {
+            maxSizeMB: 0.5,
+            maxWidthOrHeight: 1200,
+            useWebWorker: true,
+          };
+          const compressedFile = await imageCompression(file, options);
+          
+          formData.append("file", compressedFile);
           formData.append("upload_preset", uploadPreset);
 
           const response = await fetch(
@@ -460,7 +469,7 @@ const ChatPage = () => {
   return (
     <div
       dir={i18n.dir()}
-      className="h-screen bg-cesar-darker font-cairo flex flex-col text-white overflow-hidden"
+      className="h-[calc(100dvh-65px)] bg-cesar-darker font-cairo flex flex-col text-white overflow-hidden"
     >
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between border-b border-white/5 bg-cesar-dark/85 px-4 py-3 backdrop-blur-md">
