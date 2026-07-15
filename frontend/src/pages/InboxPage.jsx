@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { MessageSquare, Loader2, User, ShieldAlert } from "lucide-react";
+import { MessageSquare, Loader2, User, ShieldAlert, Search } from "lucide-react";
 import { ref, onValue } from "firebase/database";
 import { db } from "../Services/firebase";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -16,6 +16,7 @@ const InboxPage = () => {
   usePresence(currentUser?._id, "inbox");
 
   const [conversations, setConversations] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
   const usersCacheRef = useRef({});
@@ -258,6 +259,17 @@ const InboxPage = () => {
     };
   }, [chatsData, currentUser, i18n.language]);
 
+  const filteredChats = conversations.filter((conv) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+
+    const otherUserName = conv.otherUser?.name?.toLowerCase() || "";
+    const userAName = conv.userA?.name?.toLowerCase() || "";
+    const userBName = conv.userB?.name?.toLowerCase() || "";
+
+    return otherUserName.includes(query) || userAName.includes(query) || userBName.includes(query);
+  });
+
   const formatTime = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
@@ -315,6 +327,23 @@ const InboxPage = () => {
           </div>
         </section>
 
+        {/* Search Input */}
+        {isInitialFetchDone && conversations.length > 0 && (
+          <div className="relative max-w-full">
+            <span className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+              <Search className="h-5 w-5 text-slate-400" />
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={i18n.language === "ar" ? "ابحث عن اسم المستخدم..." : "Search by user name..."}
+              className="w-full bg-black/40 border border-white/10 rounded-2xl pr-11 pl-4 py-3 text-sm text-white focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan outline-none transition duration-300 placeholder:text-slate-500 text-start"
+              dir="auto"
+            />
+          </div>
+        )}
+
         {/* Content Area */}
         {!isInitialFetchDone || loading ? (
           <div className="rounded-[2rem] border border-white/5 bg-cesar-dark/85 overflow-hidden shadow-2xl backdrop-blur-md divide-y divide-white/5">
@@ -360,9 +389,23 @@ const InboxPage = () => {
               </Link>
             </div>
           </div>
+        ) : filteredChats.length === 0 ? (
+          <div className="rounded-[2rem] border border-white/5 bg-cesar-dark/70 p-12 text-center shadow-2xl backdrop-blur-md">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan">
+              <Search className="h-8 w-8" />
+            </div>
+            <h2 className="text-xl font-bold text-white">
+              {i18n.language === "ar" ? "لا توجد محادثات مطابقة للبحث" : "No matching conversations found"}
+            </h2>
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-cesar-gray">
+              {i18n.language === "ar" 
+                ? "تأكد من كتابة اسم المستخدم بشكل صحيح أو جرب كلمة بحث أخرى." 
+                : "Make sure you spelled the user's name correctly or try another search term."}
+            </p>
+          </div>
         ) : (
           <div className="rounded-[2rem] border border-white/5 bg-cesar-dark/80 overflow-hidden shadow-2xl backdrop-blur-md divide-y divide-white/5">
-            {conversations.map((conv) => {
+            {filteredChats.map((conv) => {
               const isMediatedAdminChat = conv.isMediated && !conv.isDirectChat;
               const chatTitle = conv.isMediated
                 ? (isMediatedAdminChat 
