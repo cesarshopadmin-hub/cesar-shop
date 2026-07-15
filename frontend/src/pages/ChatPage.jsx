@@ -328,6 +328,10 @@ const ChatPage = () => {
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
     if (isCooldown) return;
+    if (newMessage.length > 500) {
+      toast.error(i18n.language === "ar" ? "لا يمكن أن تتجاوز الرسالة 500 حرف." : "Message cannot exceed 500 characters.");
+      return;
+    }
     if (!newMessage.trim() && selectedFiles.length === 0) return;
     if (!chatId || !currentUser) return;
 
@@ -815,8 +819,11 @@ const ChatPage = () => {
             ref={textareaRef}
             rows="1"
             value={newMessage}
+            maxLength={500}
             onChange={(e) => {
-              setNewMessage(e.target.value);
+              if (e.target.value.length <= 500) {
+                setNewMessage(e.target.value);
+              }
               if (textareaRef.current) {
                 textareaRef.current.style.height = "48px";
                 const scrollHeight = textareaRef.current.scrollHeight;
@@ -831,7 +838,7 @@ const ChatPage = () => {
           />
           <button
             type="submit"
-            disabled={(!newMessage.trim() && selectedFiles.length === 0) || isCooldown}
+            disabled={(!newMessage.trim() && selectedFiles.length === 0) || isCooldown || newMessage.length > 500}
             className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition duration-300 ${
               isCooldown 
                 ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-500" 

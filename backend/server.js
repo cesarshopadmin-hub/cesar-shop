@@ -1,6 +1,7 @@
 import dns from "node:dns";
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 
 import connectDB from "./config/db.js";
@@ -24,11 +25,33 @@ const app = express();
 connectDB();
 
 // 2. Middlewares
-// app.use(cors());
+// // app.use(cors());
 app.use(cors({
   origin: true,
   credentials: true
 }));
+
+// app.use(cors({
+//     origin: function (origin, callback) {
+//         callback(null, true);
+//     },
+//     credentials: true
+// }));
+
+// Global Rate Limiter: 500 requests per 15 minutes per IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Limit each IP to 500 requests per window
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: {
+    status: 429,
+    error: "Too Many Requests",
+    message: "You have exceeded the request limit. Please try again after 15 minutes."
+  }
+});
+app.use(limiter);
+
 app.use(express.json());
 
 // 3. Test Route
