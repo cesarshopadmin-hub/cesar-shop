@@ -31,7 +31,7 @@ const getPublicIdFromUrl = (url) => {
 };
 
 const createPost = asyncHandler(async (req, res) => {
-  const { whatsappNumber, countryCode, description, category, price, images } = req.body;
+  const { whatsappNumber, countryCode, description, category, price, currency, images } = req.body;
   
   const imageUrls = Array.isArray(images) ? images : [];
 
@@ -42,6 +42,7 @@ const createPost = asyncHandler(async (req, res) => {
     description,
     category,
     price,
+    currency: currency || "EGP",
     images: imageUrls,
   });
 
@@ -144,7 +145,7 @@ const getPostById = asyncHandler(async (req, res) => {
 });
 
 const updatePost = asyncHandler(async (req, res) => {
-  const { whatsappNumber, countryCode, description, category, price, images } = req.body;
+  const { whatsappNumber, countryCode, description, category, price, currency, images } = req.body;
   const post = await Post.findById(req.params.id);
 
   if (!post) {
@@ -165,10 +166,11 @@ const updatePost = asyncHandler(async (req, res) => {
     throw new Error("غير مصرح لك بتعديل هذا الإعلان إلا إذا كان معلقاً أو مرفوضاً");
   }
 
-  // description, price, category — updatable by both admin and owner
+  // description, price, category, currency — updatable by both admin and owner
   post.description = description !== undefined ? description : post.description;
   post.price = price !== undefined ? price : post.price;
   post.category = category !== undefined ? category : post.category;
+  post.currency = currency !== undefined ? currency : post.currency;
 
   if (isOwner) {
     post.whatsappNumber = whatsappNumber !== undefined ? whatsappNumber : post.whatsappNumber;

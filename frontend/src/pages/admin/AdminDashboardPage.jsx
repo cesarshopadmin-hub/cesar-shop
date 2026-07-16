@@ -606,7 +606,7 @@ function AdminDashboardPage() {
                           <div className="grid gap-2 rounded-2xl border border-white/5 bg-black/30 p-4 text-xs">
                             <div className="flex items-center justify-between">
                               <span className="text-cesar-gray">السعر</span>
-                              <span className="font-bold text-cesar-cyan">{post.price} ج.م</span>
+                              <span className="font-bold text-cesar-cyan">{post.price} {post.currency === "USD" ? "$" : post.currency === "SAR" ? "ر.س" : post.currency === "AED" ? "د.إ" : "ج.م"}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-cesar-gray">صاحب الإعلان</span>
@@ -1022,7 +1022,7 @@ function AdminDashboardPage() {
               {selectedPost ? (
                 <div className="rounded-2xl border border-white/5 bg-black/30 p-4 text-sm text-slate-300">
                   <p className="text-xs text-cesar-gray">المنشور المحدد</p>
-                  <p className="mt-1 font-semibold text-white">{selectedPost.category} - {selectedPost.price} ج.م</p>
+                  <p className="mt-1 font-semibold text-white">{selectedPost.category} - {selectedPost.price} {selectedPost.currency === "USD" ? "$" : selectedPost.currency === "SAR" ? "ر.س" : selectedPost.currency === "AED" ? "د.إ" : "ج.م"}</p>
                 </div>
               ) : null}
 

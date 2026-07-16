@@ -7,6 +7,8 @@ import {
   FileText,
   ImagePlus,
   PoundSterling,
+  DollarSign,
+  Coins,
   Loader2,
   Tags,
   X,
@@ -19,9 +21,26 @@ import { optimizeImage } from "../utils/imageOptimizer.js";
 
 const PhoneInput = PhoneInputDefault.default || PhoneInputDefault;
 
+const CURRENCIES = [
+  { value: "EGP", label: "جنيه مصري", symbol: "ج.م" },
+  { value: "USD", label: "دولار أمريكي", symbol: "$" },
+  { value: "SAR", label: "ريال سعودي", symbol: "ر.س" },
+  { value: "AED", label: "درهم إماراتي", symbol: "د.إ" },
+];
+
+const getCurrencyIcon = (value) => {
+  switch (value) {
+    case "USD": return <DollarSign className="h-5 w-5" />;
+    case "SAR":
+    case "AED": return <Coins className="h-5 w-5" />;
+    default:    return <PoundSterling className="h-5 w-5" />;
+  }
+};
+
 const initialForm = {
   category: "",
   price: "",
+  currency: "EGP",
   description: "",
   whatsappNumber: "",
   countryCode: "20",
@@ -80,6 +99,7 @@ function EditPostPage() {
         setFormData({
           category: data.category || "",
           price: data.price || "",
+          currency: data.currency || "EGP",
           description: data.description || "",
           whatsappNumber: data.whatsappNumber || "",
           countryCode: data.countryCode || "20",
@@ -225,6 +245,7 @@ function EditPostPage() {
     const payload = {
       category: formData.category,
       price: Number(formData.price),
+      currency: formData.currency || "EGP",
       description: formData.description.trim(),
       whatsappNumber: formData.whatsappNumber.trim(),
       countryCode: formData.countryCode.trim(),
@@ -417,26 +438,44 @@ function EditPostPage() {
 
             <div className="space-y-2">
               <label className="mr-1 text-sm font-medium text-slate-300">
-                السعر
+                السعر والعملة
               </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500">
-                  <PoundSterling className="h-5 w-5" />
-                </div>
-                <input
-                  type="number"
-                  name="price"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
+              <div className={`flex rounded-xl border overflow-hidden transition ${
+                fieldErrors.price
+                  ? "border-red-500"
+                  : "border-white/10 focus-within:border-cesar-cyan focus-within:shadow-neon-cyan"
+              }`}>
+                {/* Currency selector — left side */}
+                <select
+                  name="currency"
+                  value={formData.currency}
                   onChange={handleChange}
-                  placeholder="0"
-                  className={`w-full rounded-xl border bg-black/40 px-4 py-3 pl-4 pr-11 text-white outline-none transition ${
-                    fieldErrors.price
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-white/10 focus:border-cesar-cyan focus:ring-cesar-cyan focus:shadow-neon-cyan"
-                  }`}
-                />
+                  className="shrink-0 bg-white/5 border-r border-white/10 text-cesar-cyan font-bold text-sm px-3 py-3 outline-none cursor-pointer hover:bg-white/10 transition appearance-none text-center"
+                  style={{ minWidth: "5rem" }}
+                  title="اختر العملة"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.symbol} {c.label}
+                    </option>
+                  ))}
+                </select>
+                {/* Price input — right side */}
+                <div className="relative flex-1">
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500">
+                    {getCurrencyIcon(formData.currency)}
+                  </div>
+                  <input
+                    type="number"
+                    name="price"
+                    min="0"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={handleChange}
+                    placeholder="0"
+                    className="w-full bg-black/40 px-4 py-3 pr-11 text-white outline-none"
+                  />
+                </div>
               </div>
               {fieldErrors.price && (
                 <p className="mt-1 mr-1 text-xs text-red-500">{fieldErrors.price}</p>

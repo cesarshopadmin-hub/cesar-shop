@@ -346,7 +346,7 @@ const PostDetailsPage = () => {
                 </span>
               </div>
               <div className="text-4xl font-black text-cesar-cyan drop-shadow-[0_0_12px_rgba(0,255,255,0.4)] mb-4">
-                {post.price} جنيه
+                {Number(post.price).toLocaleString()} {post.currency === "USD" ? "$" : post.currency === "SAR" ? "ر.س" : post.currency === "AED" ? "د.إ" : "ج.م"}
               </div>
               {/* ── Contact buttons ── */}
               <div className="flex flex-col sm:flex-row gap-3 w-full mt-2 mb-6">
@@ -386,7 +386,7 @@ const PostDetailsPage = () => {
                 <div className="space-y-4 font-cairo">
                   {/* Price */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-cesar-gray">السعر (جنيه)</label>
+                    <label className="text-xs font-bold text-cesar-gray">السعر ({post.currency === "USD" ? "دولار" : post.currency === "SAR" ? "ريال" : post.currency === "AED" ? "درهم" : "جنيه"})</label>
                     <input
                       type="number"
                       min="1"

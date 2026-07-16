@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle,
   Clock,
@@ -17,6 +17,7 @@ import {
   Trash2,
   MessageCircle,
   MessageSquare,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
@@ -67,6 +68,8 @@ function ProfilePage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [postToDelete, setPostToDelete] = useState(null); // stores post._id
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [formData, setFormData] = useState({
     name: profileUser?.name || "",
     phoneNumber: profileUser?.phoneNumber || "",
@@ -110,17 +113,23 @@ function ProfilePage() {
     });
   }, [profileUser]);
 
-  const handleDeletePost = async (postId) => {
-    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإعلان؟");
-    if (!confirmDelete) return;
+  const handleDeletePost = (postId) => {
+    setPostToDelete(postId);
+  };
 
+  const confirmDeletePost = async () => {
+    if (!postToDelete) return;
+    setIsDeletingPost(true);
     try {
-      await api.delete(`/posts/${postId}`);
+      await api.delete(`/posts/${postToDelete}`);
       toast.success("تم حذف الإعلان بنجاح");
-      setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postId));
+      setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postToDelete));
     } catch (err) {
       console.error("Error deleting post:", err);
       toast.error(err.response?.data?.message || "حدث خطأ أثناء حذف الإعلان.");
+    } finally {
+      setIsDeletingPost(false);
+      setPostToDelete(null);
     }
   };
 
@@ -528,7 +537,7 @@ function ProfilePage() {
                         <div>
                           <p className="text-xs text-cesar-gray">السعر</p>
                           <p className="mt-1 text-lg font-bold text-cesar-cyan">
-                            {Number(post.price).toLocaleString()} ج.م
+                            {Number(post.price).toLocaleString()} {post.currency === "USD" ? "$" : post.currency === "SAR" ? "ر.س" : post.currency === "AED" ? "د.إ" : "ج.م"}
                           </p>
                         </div>
                       </div>
@@ -570,6 +579,56 @@ function ProfilePage() {
           )}
         </section>
       </motion.div>
+
+      {/* Delete Post Confirmation Modal */}
+      <AnimatePresence>
+        {postToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-cesar-dark p-6 shadow-2xl text-center font-cairo"
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+
+              <div className="flex flex-col items-center gap-4 mt-2 mb-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                  <AlertTriangle className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">تأكيد حذف الإعلان</h3>
+                  <p className="mt-2 text-xs leading-5 text-cesar-gray">
+                    هل أنت متأكد أنك تريد حذف هذا الإعلان نهائياً؟ لا يمكن التراجع عن هذا الإجراء.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmDeletePost}
+                  disabled={isDeletingPost}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20 transition text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeletingPost ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  {isDeletingPost ? "جارٍ الحذف..." : "نعم، احذف"}
+                </button>
+                <button
+                  onClick={() => setPostToDelete(null)}
+                  disabled={isDeletingPost}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 text-cesar-gray border border-white/5 hover:bg-white/10 hover:text-white transition text-sm font-bold disabled:opacity-50"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Action Button (FAB) for Messaging */}
       {!isOwnProfile && (

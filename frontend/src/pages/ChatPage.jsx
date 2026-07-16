@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import imageCompression from "browser-image-compression";
 import { ArrowRight, Send, Loader2, User, Paperclip, X, ChevronLeft, ChevronRight, Check, CheckCheck, ShieldAlert, SmilePlus, Trash2, Ban, AlertTriangle } from "lucide-react";
 import { ref, onValue, push, serverTimestamp, update, set, remove, query, limitToLast, get } from "firebase/database";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { db } from "../Services/firebase";
@@ -14,13 +15,26 @@ import { optimizeImage } from "../utils/imageOptimizer.js";
 
 const reactEmojis = { like: '👍', love: '❤️', fire: '🔥', laugh: '😂', wow: '😮' };
 
+/**
+ * Computes a SHA-256 hex digest of a File object.
+ * Uses the raw (pre-compression) bytes so identical source files always
+ * produce the same hash regardless of when they were uploaded.
+ */
+async function getImageHash(file) {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 const ChatPage = () => {
   const { id: targetId } = useParams();
   const targetUserId = targetId;
-  const { user } = useAuth();
+  const { user, isFirebaseLoading } = useAuth();
   const { i18n } = useTranslation();
   const currentUser = user?.name ? user : user?.user;
-  usePresence(currentUser?._id, "chat");
+  usePresence(currentUser?._id, "chat", isFirebaseLoading);
   const navigate = useNavigate();
   const adminId = import.meta.env.VITE_ADMIN_ID;
 
@@ -135,7 +149,7 @@ const ChatPage = () => {
 
   // Read/Subscribe to Firebase messages
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId || isFirebaseLoading) return;
 
     const messagesQuery = query(ref(db, `chats/${chatId}/messages`), limitToLast(50));
     const unsubscribe = onValue(messagesQuery, (snapshot) => {
@@ -155,11 +169,11 @@ const ChatPage = () => {
     });
 
     return () => unsubscribe();
-  }, [chatId]);
+  }, [chatId, isFirebaseLoading]);
 
   // Mark received messages as read
   useEffect(() => {
-    if (!messages.length || !currentUser?._id || !chatId) return;
+    if (!messages.length || !currentUser?._id || !chatId || isFirebaseLoading) return;
 
     const unreadMessages = messages.filter(
       (msg) => msg.senderId !== currentUser._id && !(msg.readBy && msg.readBy[currentUser._id])
@@ -174,10 +188,10 @@ const ChatPage = () => {
         console.error("Error marking messages as read:", err);
       });
     }
-  }, [messages, currentUser, chatId]);
+  }, [messages, currentUser, chatId, isFirebaseLoading]);
 
   const handleMessageReact = async (msgId, currentReacts, reactType) => {
-    if (!currentUser?._id || !chatId) return;
+    if (!currentUser?._id || !chatId || isFirebaseLoading) return;
     const userCurrentReact = currentReacts?.[currentUser._id];
 
     try {
@@ -195,7 +209,7 @@ const ChatPage = () => {
 
   // Subscribe to participants list
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId || isFirebaseLoading) return;
 
     const participantsRef = ref(db, `chats/${chatId}/participants`);
     const unsubscribe = onValue(participantsRef, (snapshot) => {
@@ -208,7 +222,7 @@ const ChatPage = () => {
     });
 
     return () => unsubscribe();
-  }, [chatId]);
+  }, [chatId, isFirebaseLoading]);
 
   const isMediationVisible = 
     currentUser?._id &&
@@ -222,6 +236,7 @@ const ChatPage = () => {
   };
 
   const confirmMediation = async () => {
+    if (isFirebaseLoading) return;
     const parts = chatId.split("_");
     if (parts.length < 2) return;
 
@@ -261,8 +276,9 @@ const ChatPage = () => {
     }
   };
 
-
+  // دالة الحذف المحدثة للتعامل مع Firebase Storage والـ Cloudinary القديم
   const handleSoftDeleteMessage = async (msgId, imageInfo) => {
+    if (isFirebaseLoading) return;
     try {
       const msgRef = ref(db, `chats/${chatId}/messages/${msgId}`);
       await update(msgRef, {
@@ -273,21 +289,22 @@ const ChatPage = () => {
         reacts: null
       });
 
-      // Task 3: Cloudinary cleanup
+      // تنظيف الملفات من الـ Storage
       if (imageInfo) {
-        if (Array.isArray(imageInfo)) {
-          for (const imgUrl of imageInfo) {
+        // تحويل الداتا لـ Array دائمًا عشان نسهل اللوب
+        const urlsToDelete = Array.isArray(imageInfo) ? imageInfo : [imageInfo];
+
+        for (const imgUrl of urlsToDelete) {
+          if (typeof imgUrl !== "string") continue;
+
+          if (imgUrl.includes("cloudinary.com")) {
+            // حذف صور الـ Cloudinary القديمة لو لسه موجودة في قاعدة البيانات
             try {
               await api.post("/chat/delete-image", { imageUrl: imgUrl });
+              console.log("Legacy Cloudinary image deleted successfully:", imgUrl);
             } catch (err) {
-              console.error("Cloudinary image deletion failed:", err);
+              console.error("Legacy Cloudinary image deletion failed:", err);
             }
-          }
-        } else if (typeof imageInfo === "string") {
-          try {
-            await api.post("/chat/delete-image", { imageUrl: imageInfo });
-          } catch (err) {
-            console.error("Cloudinary image deletion failed:", err);
           }
         }
       }
@@ -327,7 +344,7 @@ const ChatPage = () => {
   // Handle message sending (including optional image uploading)
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
-    if (isCooldown) return;
+    if (isCooldown || isFirebaseLoading) return;
     if (newMessage.length > 500) {
       toast.error(i18n.language === "ar" ? "لا يمكن أن تتجاوز الرسالة 500 حرف." : "Message cannot exceed 500 characters.");
       return;
@@ -363,47 +380,49 @@ const ChatPage = () => {
 
     if (selectedFiles.length > 0) {
       try {
-        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-        const uploadPreset = import.meta.env.VITE_CLOUDINARY_CHAT_PRESET || "chat_media";
+        const storage = getStorage();
+        let actualUploadCount = 0; // counts only real Storage uploads (cache misses)
 
-        const uploadPromises = selectedFiles.map(async (file) => {
-          const formData = new FormData();
-          
+        const uploadPromises = selectedFiles.map(async (file, index) => {
+          // 1. Hash the RAW file before any compression
+          const hash = await getImageHash(file);
+          const hashRef = ref(db, `image_hashes/${hash}`);
+
+          // 2. Check RTDB for an existing cached URL (cache hit)
+          const hashSnapshot = await get(hashRef);
+          if (hashSnapshot.exists()) {
+            console.log(`[ImageDedup] Cache hit for hash ${hash.slice(0, 8)}... — reusing URL.`);
+            return hashSnapshot.val(); // skip compression + upload entirely
+          }
+
+          // 3. Cache miss — compress, upload, then cache the result
           const options = {
             maxSizeMB: 0.5,
             maxWidthOrHeight: 1200,
             useWebWorker: true,
           };
           const compressedFile = await imageCompression(file, options);
-          
-          formData.append("file", compressedFile);
-          formData.append("upload_preset", uploadPreset);
 
-          const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-            {
-              method: "POST",
-              body: formData,
-            }
-          );
+          const imageRef = storageRef(storage, `chat_images/${currentUser._id}_${Date.now()}_${index}`);
+          const snapshot = await uploadBytes(imageRef, compressedFile);
+          const downloadUrl = await getDownloadURL(snapshot.ref);
 
-          if (!response.ok) {
-            throw new Error("Failed to upload image to Cloudinary");
-          }
+          // 4. Save the URL to the hash cache so future identical files skip upload
+          await set(hashRef, downloadUrl);
+          actualUploadCount += 1;
+          console.log(`[ImageDedup] Cache miss — uploaded and cached hash ${hash.slice(0, 8)}...`);
 
-          const data = await response.json();
-          let secureUrl = data.secure_url;
-          
-          // Optimize Cloudinary URL by inserting f_auto,q_auto,w_800
-          if (secureUrl.includes("/upload/")) {
-            secureUrl = secureUrl.replace("/upload/", "/upload/f_auto,q_auto,w_800/");
-          }
-          return secureUrl;
+          return downloadUrl;
         });
 
         optimizedUrlsArray = await Promise.all(uploadPromises);
+
+        // Update daily limit only for actual uploads (cache misses), not cache hits
+        if (actualUploadCount > 0) {
+          currentUploadCount += actualUploadCount;
+        }
       } catch (err) {
-        console.error("Error uploading images:", err);
+        console.error("Error uploading images to Firebase Storage:", err);
         toast.error("فشل رفع بعض الصور. يرجى المحاولة مرة أخرى.");
         setIsUploadingImage(false);
         return;
@@ -443,7 +462,7 @@ const ChatPage = () => {
     if (selectedFiles.length > 0) {
       updates[`user_limits/${currentUser._id}/daily_images`] = {
         date: todayStr,
-        count: currentUploadCount + selectedFiles.length
+        count: currentUploadCount  // already updated to reflect only actual Storage uploads
       };
     }
 

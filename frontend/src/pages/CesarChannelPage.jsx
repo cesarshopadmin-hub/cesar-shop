@@ -26,6 +26,7 @@ import { db } from "../Services/firebase";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePresence } from "../hooks/usePresence";
 import { optimizeImage } from "../utils/imageOptimizer.js";
+import api from "../Services/api.js";
 
 const reactEmojis = { like: '👍', love: '❤️', fire: '🔥' };
 
@@ -314,7 +315,22 @@ const CesarChannelPage = () => {
   const confirmDeletePost = async () => {
     if (!postToDelete) return;
     try {
-      await remove(ref(db, `cesar_channel/posts/${postToDelete}`));
+      // Delete each image from Cloudinary before removing the Firebase node
+      if (postToDelete.images && postToDelete.images.length > 0) {
+        const deletionResults = await Promise.allSettled(
+          postToDelete.images
+            .filter((url) => url && url.includes("cloudinary"))
+            .map((url) => api.post("/chat/delete-image", { imageUrl: url }))
+        );
+
+        deletionResults.forEach((result, idx) => {
+          if (result.status === "rejected") {
+            console.warn(`Failed to delete Cloudinary image [${idx}]:`, result.reason);
+          }
+        });
+      }
+
+      await remove(ref(db, `cesar_channel/posts/${postToDelete.id}`));
       toast.success(i18n.language === "ar" ? "تم حذف المنشور بنجاح!" : "Post deleted successfully!");
     } catch (err) {
       console.error("Error deleting post:", err);
@@ -481,7 +497,7 @@ const CesarChannelPage = () => {
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => setPostToDelete(post.id)}
+                        onClick={() => setPostToDelete(post)}
                         className="rounded-lg p-1.5 bg-white/5 text-cesar-gray hover:text-red-500 hover:bg-red-500/10 transition"
                         title={i18n.language === "ar" ? "حذف" : "Delete"}
                       >

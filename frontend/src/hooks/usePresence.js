@@ -2,12 +2,14 @@ import { useEffect } from "react";
 import { ref, onValue, onDisconnect, set, remove, serverTimestamp } from "firebase/database";
 import { db } from "../Services/firebase";
 
-export function usePresence(userId, pageLabel) {
+export function usePresence(userId, pageLabel, isFirebaseLoading = false) {
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || isFirebaseLoading) return;
 
     const connectedRef = ref(db, ".info/connected");
-    const myPresenceRef = ref(db, `presence/${userId}_${pageLabel}`);
+    // const myPresenceRef = ref(db, `presence/${userId}_${pageLabel}`);
+    const myPresenceRef = ref(db, `presence/${userId}/${pageLabel}`);
+
 
     const unsubscribe = onValue(connectedRef, (snap) => {
       if (snap.val() === true) {
@@ -23,5 +25,5 @@ export function usePresence(userId, pageLabel) {
       unsubscribe();
       remove(myPresenceRef); 
     };
-  }, [userId, pageLabel]);
+  }, [userId, pageLabel, isFirebaseLoading]);
 }

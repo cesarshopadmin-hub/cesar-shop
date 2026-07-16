@@ -123,8 +123,10 @@ const InboxPage = () => {
 
     // If userChatsKeys has no items, we are done loading and have no conversations
     if (userChatsKeys.length === 0) {
-      setConversations([]);
-      setLoading(false);
+      if (isInitialFetchDone) {
+        setConversations([]);
+        setLoading(false);
+      }
       return;
     }
 
@@ -257,7 +259,7 @@ const InboxPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [chatsData, currentUser, i18n.language]);
+  }, [chatsData, currentUser, i18n.language, isInitialFetchDone, userChatsKeys]);
 
   const filteredChats = conversations.filter((conv) => {
     const query = searchQuery.toLowerCase().trim();
