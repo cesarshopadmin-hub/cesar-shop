@@ -20,6 +20,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import imageCompression from "browser-image-compression";
 import api from "../Services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { optimizeImage } from "../utils/imageOptimizer.js";
@@ -185,19 +186,29 @@ function ProfilePage() {
     if (!file) return;
 
     setUploadingImage(true);
-    const form = new FormData();
-    form.append("profilePicture", file);
-
     try {
+      // Compress before uploading — mobile camera photos can be 3–8MB,
+      // well above the backend 2MB multer limit.
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+      });
+
+      const form = new FormData();
+      form.append("profilePicture", compressed, file.name);
+
       const response = await api.put("/auth/profile-picture", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (response.data && response.data.profilePictureUrl) {
         updateUser({ profilePictureUrl: response.data.profilePictureUrl });
+        toast.success("تم تحديث الصورة الشخصية بنجاح!");
       }
     } catch (error) {
       console.error("Error uploading image:", error);
-      alert("حدث خطأ أثناء رفع الصورة");
+      const msg = error?.response?.data?.message || error?.message || "حدث خطأ أثناء رفع الصورة";
+      toast.error(msg);
     } finally {
       setUploadingImage(false);
     }

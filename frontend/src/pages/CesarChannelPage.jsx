@@ -873,7 +873,7 @@ const CesarChannelPage = () => {
             .sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
 
           return (
-            <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/80 backdrop-blur-sm p-2 sm:p-4">
+            <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/80 backdrop-blur-sm p-2 pb-[4.5rem] sm:p-4 sm:pb-4">
               <motion.div
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
@@ -969,7 +969,7 @@ const CesarChannelPage = () => {
                 {/* Footer Input Area */}
                 <form
                   onSubmit={(e) => handleAddComment(e, targetPost.id)}
-                  className="p-3 bg-cesar-dark border-t border-white/5 flex gap-2 items-center"
+                  className="p-3 pb-4 bg-cesar-dark border-t border-white/5 flex gap-2 items-center"
                 >
                   <button
                     type="submit"

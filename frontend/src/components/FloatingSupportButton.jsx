@@ -3,7 +3,7 @@ import { Headset } from "lucide-react";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 
-const HIDDEN_PATHS = ["/admin", "/chat", "/inbox", "/profile"];
+const HIDDEN_PATHS = ["/admin", "/chat", "/inbox", "/profile", "/channel"];
 
 const FloatingSupportButton = () => {
   const { user } = useAuth();
