@@ -64,6 +64,7 @@ const CesarChannelPage = () => {
 
   // Edit/Delete Post State
   const [postToDelete, setPostToDelete] = useState(null);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [editPostData, setEditPostData] = useState(null); // { id, text }
   const [isUpdatingPost, setIsUpdatingPost] = useState(false);
 
@@ -314,6 +315,7 @@ const CesarChannelPage = () => {
 
   const confirmDeletePost = async () => {
     if (!postToDelete) return;
+    setIsDeletingPost(true);
     try {
       // Delete each image from Cloudinary before removing the Firebase node
       if (postToDelete.images && postToDelete.images.length > 0) {
@@ -336,6 +338,7 @@ const CesarChannelPage = () => {
       console.error("Error deleting post:", err);
       toast.error(i18n.language === "ar" ? "تعذر حذف المنشور" : "Failed to delete post");
     } finally {
+      setIsDeletingPost(false);
       setPostToDelete(null);
     }
   };
@@ -1071,13 +1074,20 @@ const CesarChannelPage = () => {
               <div className="flex gap-3 font-cairo">
                 <button
                   onClick={confirmDeletePost}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20 transition text-sm font-bold text-center"
+                  disabled={isDeletingPost}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20 transition text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {i18n.language === "ar" ? "نعم، احذف" : "Yes, delete"}
+                  {isDeletingPost ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  {isDeletingPost ? (i18n.language === "ar" ? "جارٍ الحذف..." : "Deleting...") : (i18n.language === "ar" ? "نعم، احذف" : "Yes, delete")}
                 </button>
                 <button
                   onClick={() => setPostToDelete(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-white/5 text-cesar-gray border border-white/5 hover:bg-white/10 hover:text-white transition text-sm font-bold text-center"
+                  disabled={isDeletingPost}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 text-cesar-gray border border-white/5 hover:bg-white/10 hover:text-white transition text-sm font-bold text-center disabled:opacity-50"
                 >
                   {i18n.language === "ar" ? "إلغاء" : "Cancel"}
                 </button>

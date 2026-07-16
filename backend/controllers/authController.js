@@ -10,15 +10,27 @@ const asyncHandler = (fn) => (req, res, next) => {
 
 const getPublicIdFromUrl = (url) => {
   try {
+    // 1. Split on /upload/
     const parts = url.split("/upload/");
     if (parts.length < 2) return null;
-    const pathParts = parts[1].split("/");
-    if (pathParts[0].startsWith("v") && /^\d+$/.test(pathParts[0].substring(1))) {
-      pathParts.shift();
+
+    let path = parts[1];
+
+    // 2. Strip transformation segment if the first path part contains a comma
+    if (path.includes("/") && path.split("/")[0].includes(",")) {
+      path = path.substring(path.indexOf("/") + 1);
     }
-    const filename = pathParts.join("/");
-    return filename.split(".")[0];
-  } catch {
+
+    // 3. Strip version prefix if the path starts with v followed by digits
+    if (path.startsWith("v")) {
+      const slashIndex = path.indexOf("/");
+      if (slashIndex !== -1) path = path.substring(slashIndex + 1);
+    }
+
+    // 4. Remove the file extension
+    return path.substring(0, path.lastIndexOf("."));
+  } catch (err) {
+    console.error("Error parsing Public ID:", err);
     return null;
   }
 };
@@ -197,7 +209,6 @@ const updateProfilePicture = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
 
     if (!user) {
-      res.status(404);
       return res.status(404).json({ message: "المستخدم غير موجود" });
     }
 

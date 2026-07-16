@@ -381,7 +381,6 @@ const ChatPage = () => {
     if (selectedFiles.length > 0) {
       try {
         const storage = getStorage();
-        let actualUploadCount = 0; // counts only real Storage uploads (cache misses)
 
         const uploadPromises = selectedFiles.map(async (file, index) => {
           // 1. Hash the RAW file before any compression
@@ -392,7 +391,7 @@ const ChatPage = () => {
           const hashSnapshot = await get(hashRef);
           if (hashSnapshot.exists()) {
             console.log(`[ImageDedup] Cache hit for hash ${hash.slice(0, 8)}... — reusing URL.`);
-            return hashSnapshot.val(); // skip compression + upload entirely
+            return { url: hashSnapshot.val(), wasUploaded: 0 }; // skip compression + upload entirely
           }
 
           // 3. Cache miss — compress, upload, then cache the result
@@ -409,13 +408,16 @@ const ChatPage = () => {
 
           // 4. Save the URL to the hash cache so future identical files skip upload
           await set(hashRef, downloadUrl);
-          actualUploadCount += 1;
           console.log(`[ImageDedup] Cache miss — uploaded and cached hash ${hash.slice(0, 8)}...`);
 
-          return downloadUrl;
+          return { url: downloadUrl, wasUploaded: 1 };
         });
 
-        optimizedUrlsArray = await Promise.all(uploadPromises);
+        const uploadResults = await Promise.all(uploadPromises);
+
+        // Extract URLs and count only real Storage uploads (cache misses)
+        optimizedUrlsArray = uploadResults.map((r) => r.url);
+        const actualUploadCount = uploadResults.reduce((acc, r) => acc + r.wasUploaded, 0);
 
         // Update daily limit only for actual uploads (cache misses), not cache hits
         if (actualUploadCount > 0) {
@@ -549,10 +551,10 @@ const ChatPage = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
                 <ShieldAlert className="h-5 w-5 animate-pulse" />
               </div>
-            ) : targetUser.profilePictureUrl ? (
+            ) : targetUser?.profilePictureUrl ? (
               <img
                 src={optimizeImage(targetUser.profilePictureUrl)}
-                alt={targetUser.name}
+                alt={targetUser?.name}
                 className="h-10 w-10 rounded-full object-cover border border-cesar-cyan/20"
               />
             ) : (
@@ -564,7 +566,7 @@ const ChatPage = () => {
               <h2 className="text-base font-bold leading-tight">
                 {isMediationRoom 
                   ? `وساطة: ${mediatorUsers[0]?.name || ""} و ${mediatorUsers[1]?.name || ""}` 
-                  : targetUser.name}
+                  : targetUser?.name}
               </h2>
               <span className="text-xs flex items-center gap-1.5 mt-0.5 font-bold font-cairo text-emerald-400">
                 {isMediationRoom ? (
