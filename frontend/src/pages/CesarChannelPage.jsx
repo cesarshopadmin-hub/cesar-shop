@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -34,6 +35,7 @@ const CesarChannelPage = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const currentUser = user?.name ? user : user?.user;
+  const navigate = useNavigate();
   usePresence(currentUser?._id, "channel");
   const adminId = import.meta.env.VITE_ADMIN_ID;
   const isAdmin = currentUser?._id === adminId;
@@ -261,7 +263,11 @@ const CesarChannelPage = () => {
   };
 
   const handleReact = async (postId, currentReacts, reactType) => {
-    if (!currentUser?._id) return;
+    if (!currentUser?._id) {
+      toast.info(i18n.language === "ar" ? "يرجى تسجيل الدخول للتفاعل مع المنشور" : "Please log in to react");
+      navigate("/login");
+      return;
+    }
     const userCurrentReact = currentReacts?.[currentUser._id];
 
     try {
@@ -279,7 +285,12 @@ const CesarChannelPage = () => {
 
   const handleAddComment = async (e, postId) => {
     e.preventDefault();
-    if (!newComment.trim() || !currentUser?._id) return;
+    if (!newComment.trim()) return;
+    if (!currentUser?._id) {
+      toast.info(i18n.language === "ar" ? "يرجى تسجيل الدخول لإضافة تعليق" : "Please log in to comment");
+      navigate("/login");
+      return;
+    }
 
     setIsCommenting(true);
     try {

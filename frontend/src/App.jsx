@@ -47,7 +47,7 @@ function App() {
             <Route path="/inbox" element={<AuthGuard><InboxPage /></AuthGuard>} />
             <Route path="/add-post" element={<AuthGuard><AddPostPage /></AuthGuard>} />
             <Route path="/chat/:id" element={<AuthGuard><ChatPage /></AuthGuard>} />
-            <Route path="/channel" element={<AuthGuard><CesarChannelPage /></AuthGuard>} />
+            <Route path="/channel" element={<CesarChannelPage />} />
 
             {/* 👑 Admin Routes (Ll-moderen bs) */}
             <Route 
