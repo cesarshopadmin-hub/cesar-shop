@@ -8,6 +8,7 @@ import {
   Mail,
   Phone,
   MessageCircle,
+  MessageSquare,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
@@ -345,9 +346,11 @@ const PostDetailsPage = () => {
                 </span>
               </div>
               <div className="text-4xl font-black text-cesar-cyan drop-shadow-[0_0_12px_rgba(0,255,255,0.4)] mb-4">
-                {post.price} جنيه
+                {Number(post.price).toLocaleString()} {post.currency === "USD" ? "$" : post.currency === "SAR" ? "ر.س" : post.currency === "AED" ? "د.إ" : "ج.م"}
               </div>
-              <div className="mb-6">
+              {/* ── Contact buttons ── */}
+              <div className="flex flex-col sm:flex-row gap-3 w-full mt-2 mb-6">
+                {/* WhatsApp */}
                 <a
                   href={`https://wa.me/${post.countryCode || ''}${post.whatsappNumber || ''}`}
                   onClick={(e) => {
@@ -358,11 +361,23 @@ const PostDetailsPage = () => {
                   }}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-3 w-full py-4 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/50 hover:shadow-[0_0_20px_rgba(37,211,102,0.3)] rounded-xl font-bold text-lg transition-all duration-300 group"
+                  className="flex-1 flex items-center justify-center gap-2 h-12 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/40 hover:shadow-[0_0_18px_rgba(37,211,102,0.25)] rounded-xl font-bold text-sm transition-all duration-300 group"
                 >
-                  <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
                   تواصل عبر واتساب
                 </a>
+
+                {/* Chat */}
+                {user && post.user && user._id !== post.user._id && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/chat/${post.user._id}`)}
+                    className="flex-1 flex items-center justify-center gap-2 h-12 bg-cesar-cyan/10 hover:bg-cesar-cyan/20 text-cesar-cyan border border-cesar-cyan/30 hover:shadow-[0_0_18px_rgba(0,209,255,0.2)] rounded-xl font-bold text-sm transition-all duration-300 group"
+                  >
+                    <MessageSquare className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    تواصل معي
+                  </button>
+                )}
               </div>
             </div>
 
@@ -371,7 +386,11 @@ const PostDetailsPage = () => {
                 <div className="space-y-4 font-cairo">
                   {/* Price */}
                   <div className="space-y-1">
+<<<<<<< HEAD
                     <label className="text-xs font-bold text-cesar-gray">السعر (جنيه)</label>
+=======
+                    <label className="text-xs font-bold text-cesar-gray">السعر ({post.currency === "USD" ? "دولار" : post.currency === "SAR" ? "ريال" : post.currency === "AED" ? "درهم" : "جنيه"})</label>
+>>>>>>> feature/v2-chat-community
                     <input
                       type="number"
                       min="1"
@@ -459,7 +478,7 @@ const PostDetailsPage = () => {
                   {isAdmin ? "إدارة الإعلان (أدمن)" : "إدارة الإعلان الخاص بك"}
                 </h3>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  {isOwner && post.status === "pending" && (
+                  {isOwner && (post.status === "pending" || post.status === "rejected") && (
                     <Link
                       to={`/edit-post/${post._id}`}
                       className="flex-1 flex items-center justify-center gap-2 py-3 border border-cesar-cyan/40 bg-cesar-cyan/10 text-cesar-cyan hover:bg-cesar-cyan/20 hover:shadow-neon-cyan rounded-xl font-bold text-sm transition-all duration-300 text-center"

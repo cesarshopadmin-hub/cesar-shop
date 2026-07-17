@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle, Trash2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle, Trash2, X, AlertTriangle } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import { normalizeText, matchesCategory } from "../utils/postHelpers.js";
@@ -37,6 +37,7 @@ function PostsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [postToDelete, setPostToDelete] = useState(null);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [activeLightboxImage, setActiveLightboxImage] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -46,6 +47,8 @@ function PostsPage() {
   };
 
   const handleDeleteConfirm = async (postId) => {
+    if (isDeletingPost) return;
+    setIsDeletingPost(true);
     try {
       await api.delete(`/posts/${postId}`);
       toast.success("تم حذف الإعلان بنجاح");
@@ -54,6 +57,7 @@ function PostsPage() {
       console.error("Error deleting post:", err);
       toast.error(err.response?.data?.message || "حدث خطأ أثناء حذف الإعلان.");
     } finally {
+      setIsDeletingPost(false);
       setPostToDelete(null);
     }
   };
@@ -266,23 +270,36 @@ function PostsPage() {
                   {/* Card Header (Social Media Style) */}
                   <div className="flex items-center p-3 border-b border-white/5 bg-black/20">
                     {/* User Info (Right side in RTL) */}
-                    <div className="flex items-center gap-2">
-                      {post.user?.profilePictureUrl ? (
-                        <img
-                          src={optimizeImage(post.user.profilePictureUrl)}
-                          alt={userName}
-                          className="h-8 w-8 rounded-full object-cover border border-white/10 cursor-pointer"
-                          onClick={() => setActiveLightboxImage(post.user.profilePictureUrl)}
-                        />
-                      ) : (
+                    {post.user ? (
+                      <Link
+                        to={`/profile/${post.user._id}`}
+                        className="flex items-center gap-2 hover:text-cesar-cyan transition-colors group"
+                      >
+                        {post.user.profilePictureUrl ? (
+                          <img
+                            src={optimizeImage(post.user.profilePictureUrl)}
+                            alt={userName}
+                            className="h-8 w-8 rounded-full object-cover border border-white/10 cursor-pointer group-hover:border-cesar-cyan/50 transition-colors"
+                          />
+                        ) : (
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-cesar-cyan group-hover:border-cesar-cyan/50 transition-colors">
+                            <User className="h-4 w-4" />
+                          </div>
+                        )}
+                        <span className="font-semibold text-sm text-white group-hover:text-cesar-cyan transition-colors">
+                          {userName}
+                        </span>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-2">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-cesar-cyan">
                           <User className="h-4 w-4" />
                         </div>
-                      )}
-                      <span className="font-semibold text-sm text-white">
-                        {userName}
-                      </span>
-                    </div>
+                        <span className="font-semibold text-sm text-white">
+                          {userName}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
@@ -331,6 +348,24 @@ function PostsPage() {
                       </button>
                     )}
 
+                    {/* Owner can also delete their own post from this page */}
+                    {currentUser && currentUser.role !== 'admin' && post.user?._id === currentUser._id && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          deletePost(post._id);
+                        }}
+                        className={`absolute top-2 bg-red-600/90 hover:bg-red-600 border border-red-500/30 text-white rounded-full p-2.5 z-20 shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_rgba(239,68,68,0.6)] ${
+                          i18n.dir() === "rtl" ? "right-2" : "left-2"
+                        }`}
+                        title="حذف إعلاني"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+
                     <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2 rounded-full border border-cesar-cyan/20 bg-black/55 px-3 py-1.5 text-xs font-semibold text-cesar-cyan backdrop-blur-sm">
@@ -367,7 +402,7 @@ function PostsPage() {
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-cesar-gray">السعر</span>
                           <span className="font-bold text-cesar-cyan">
-                            {Number(post.price || 0).toLocaleString()} ج.م
+                            {Number(post.price || 0).toLocaleString()} {post.currency === "USD" ? "$" : post.currency === "SAR" ? "ر.س" : post.currency === "AED" ? "د.إ" : "ج.م"}
                           </span>
                         </div>
                       </div>
@@ -408,37 +443,57 @@ function PostsPage() {
         )}
       </div>
 
-      {/* ── Custom Deletion Confirmation Modal ── */}
-      {postToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md rounded-[1.75rem] border border-red-500/30 bg-cesar-dark p-6 text-right shadow-[0_0_30px_rgba(239,68,68,0.15)] backdrop-blur-xl"
-          >
-            <h3 className="text-xl font-bold text-white mb-2">تأكيد حذف الإعلان</h3>
-            <p className="text-sm text-cesar-gray mb-6 leading-6">
-              هل أنت متأكد؟ لا يمكن التراجع عن حذف هذا الإعلان نهائياً.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => setPostToDelete(null)}
-                className="px-4 py-2.5 text-sm font-bold text-cesar-gray hover:text-white transition duration-200"
-              >
-                إلغاء
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteConfirm(postToDelete)}
-                className="px-5 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl border border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition duration-300"
-              >
-                تأكيد الحذف
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {/* ── Delete Post Confirmation Modal ── */}
+      <AnimatePresence>
+        {postToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-cesar-dark p-6 shadow-2xl text-center font-cairo"
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+
+              <div className="flex flex-col items-center gap-4 mt-2 mb-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                  <AlertTriangle className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">تأكيد حذف الإعلان</h3>
+                  <p className="mt-2 text-xs leading-5 text-cesar-gray">
+                    هل أنت متأكد أنك تريد حذف هذا الإعلان نهائياً؟ لا يمكن التراجع عن هذا الإجراء.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteConfirm(postToDelete)}
+                  disabled={isDeletingPost}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20 transition text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeletingPost ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  {isDeletingPost ? "جارٍ الحذف..." : "نعم، احذف"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPostToDelete(null)}
+                  disabled={isDeletingPost}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 text-cesar-gray border border-white/5 hover:bg-white/10 hover:text-white transition text-sm font-bold disabled:opacity-50"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── Image Lightbox Modal ── */}
       {activeLightboxImage && (

@@ -515,6 +515,40 @@ function AdminDashboardPage() {
                       animate={{ opacity: 1, y: 0 }}
                       className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-white/5 bg-cesar-dark/80 shadow-2xl shadow-black/40 backdrop-blur-md"
                     >
+                      {/* Card Header (Social Media Style) */}
+                      <div className="flex items-center p-3 border-b border-white/5 bg-black/20">
+                        {post.user ? (
+                          <Link
+                            to={`/profile/${post.user._id}`}
+                            className="flex items-center gap-2 hover:text-cesar-cyan transition-colors group"
+                          >
+                            {post.user.profilePictureUrl ? (
+                              <img
+                                src={optimizeImage(post.user.profilePictureUrl)}
+                                alt={userName}
+                                className="h-8 w-8 rounded-full object-cover border border-white/10 cursor-pointer group-hover:border-cesar-cyan/50 transition-colors"
+                              />
+                            ) : (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-cesar-cyan group-hover:border-cesar-cyan/50 transition-colors">
+                                <User className="h-4 w-4" />
+                              </div>
+                            )}
+                            <span className="font-semibold text-sm text-white group-hover:text-cesar-cyan transition-colors">
+                              {userName}
+                            </span>
+                          </Link>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-cesar-cyan">
+                              <User className="h-4 w-4" />
+                            </div>
+                            <span className="font-semibold text-sm text-white">
+                              {userName}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
                         {imageUrl ? (
                           <img src={optimizeImage(imageUrl)} alt={post.category || "إعلان"} className="h-full w-full object-cover" />
@@ -572,7 +606,7 @@ function AdminDashboardPage() {
                           <div className="grid gap-2 rounded-2xl border border-white/5 bg-black/30 p-4 text-xs">
                             <div className="flex items-center justify-between">
                               <span className="text-cesar-gray">السعر</span>
-                              <span className="font-bold text-cesar-cyan">{post.price} ج.م</span>
+                              <span className="font-bold text-cesar-cyan">{post.price} {post.currency === "USD" ? "$" : post.currency === "SAR" ? "ر.س" : post.currency === "AED" ? "د.إ" : "ج.م"}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-cesar-gray">صاحب الإعلان</span>
@@ -988,7 +1022,7 @@ function AdminDashboardPage() {
               {selectedPost ? (
                 <div className="rounded-2xl border border-white/5 bg-black/30 p-4 text-sm text-slate-300">
                   <p className="text-xs text-cesar-gray">المنشور المحدد</p>
-                  <p className="mt-1 font-semibold text-white">{selectedPost.category} - {selectedPost.price} ج.م</p>
+                  <p className="mt-1 font-semibold text-white">{selectedPost.category} - {selectedPost.price} {selectedPost.currency === "USD" ? "$" : selectedPost.currency === "SAR" ? "ر.س" : selectedPost.currency === "AED" ? "د.إ" : "ج.م"}</p>
                 </div>
               ) : null}
 

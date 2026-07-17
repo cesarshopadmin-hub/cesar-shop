@@ -35,6 +35,11 @@ const postSchema = new mongoose.Schema(
       required: [true, "Price is required"],
       min: [0, "Price cannot be negative"],
     },
+    currency: {
+      type: String,
+      enum: ["EGP", "USD", "SAR", "AED"],
+      default: "EGP",
+    },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],

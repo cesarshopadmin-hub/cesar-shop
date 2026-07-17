@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle,
   Clock,
@@ -16,8 +16,11 @@ import {
   X,
   Trash2,
   MessageCircle,
+  MessageSquare,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import imageCompression from "browser-image-compression";
 import api from "../Services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { optimizeImage } from "../utils/imageOptimizer.js";
@@ -46,6 +49,8 @@ const statusMeta = {
 function ProfilePage() {
   const { t, i18n } = useTranslation();
   const { user, updateUser } = useAuth();
+  const { id: userId } = useParams();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -54,38 +59,104 @@ function ProfilePage() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const currentUser = user?.name ? user : user?.user;
-  const profilePictureUrl = currentUser?.profilePictureUrl;
+  const isOwnProfile = !userId || userId === currentUser?._id;
+  const isAdmin = currentUser?.role === "admin";
+
+  const [profileUser, setProfileUser] = useState(isOwnProfile ? currentUser : null);
+  const [fetchingUser, setFetchingUser] = useState(!isOwnProfile);
+
+  const profilePictureUrl = profileUser?.profilePictureUrl;
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [postToDelete, setPostToDelete] = useState(null); // stores post._id
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [formData, setFormData] = useState({
-    name: currentUser?.name || "",
-    phoneNumber: currentUser?.phoneNumber || "",
+    name: profileUser?.name || "",
+    phoneNumber: profileUser?.phoneNumber || "",
   });
 
-  const handleDeletePost = async (postId) => {
-    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإعلان؟");
-    if (!confirmDelete) return;
+  useEffect(() => {
+    if (isOwnProfile) {
+      setProfileUser(currentUser);
+      setFetchingUser(false);
+    } else {
+      let isMounted = true;
+      const fetchUserProfile = async () => {
+        try {
+          setFetchingUser(true);
+          const response = await api.get(`/users/${userId}`);
+          if (isMounted) {
+            setProfileUser(response.data);
+          }
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
+          if (isMounted) {
+            setError(err.response?.data?.message || "تعذر تحميل بيانات المستخدم.");
+          }
+        } finally {
+          if (isMounted) {
+            setFetchingUser(false);
+          }
+        }
+      };
+      fetchUserProfile();
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [userId, isOwnProfile, currentUser]);
 
+  useEffect(() => {
+    setFormData({
+      name: profileUser?.name || "",
+      phoneNumber: profileUser?.phoneNumber || "",
+    });
+  }, [profileUser]);
+
+  const handleDeletePost = (postId) => {
+    setPostToDelete(postId);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!postToDelete) return;
+    setIsDeletingPost(true);
     try {
-      await api.delete(`/posts/${postId}`);
+      await api.delete(`/posts/${postToDelete}`);
       toast.success("تم حذف الإعلان بنجاح");
-      setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postId));
+      setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postToDelete));
     } catch (err) {
       console.error("Error deleting post:", err);
       toast.error(err.response?.data?.message || "حدث خطأ أثناء حذف الإعلان.");
+    } finally {
+      setIsDeletingPost(false);
+      setPostToDelete(null);
     }
   };
 
   useEffect(() => {
+    if (fetchingUser || !profileUser?._id) return;
     let isMounted = true;
-    const fetchMyPosts = async () => {
+    const fetchPosts = async () => {
       try {
         setLoading(true);
         setError("");
-        const response = await api.get("/posts/my-posts");
-        if (isMounted) {
-          setPosts(Array.isArray(response.data) ? response.data : []);
+        if (isOwnProfile) {
+          const response = await api.get("/posts/my-posts");
+          if (isMounted) {
+            setPosts(Array.isArray(response.data) ? response.data : []);
+          }
+        } else {
+          const response = await api.get("/posts?page=1&limit=100");
+          if (isMounted) {
+            const allPosts = Array.isArray(response.data?.posts) ? response.data.posts : [];
+            const filteredPosts = allPosts.filter(
+              (p) =>
+                p.user?._id === profileUser?._id ||
+                p.user === profileUser?._id
+            );
+            setPosts(filteredPosts);
+          }
         }
       } catch (requestError) {
         if (isMounted) {
@@ -100,11 +171,11 @@ function ProfilePage() {
         }
       }
     };
-    fetchMyPosts();
+    fetchPosts();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isOwnProfile, profileUser?._id, fetchingUser]);
 
   const handleImageClick = () => {
     fileInputRef.current.click();
@@ -115,19 +186,29 @@ function ProfilePage() {
     if (!file) return;
 
     setUploadingImage(true);
-    const form = new FormData();
-    form.append("profilePicture", file);
-
     try {
+      // Compress before uploading — mobile camera photos can be 3–8MB,
+      // well above the backend 2MB multer limit.
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+      });
+
+      const form = new FormData();
+      form.append("profilePicture", compressed, file.name);
+
       const response = await api.put("/auth/profile-picture", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (response.data && response.data.profilePictureUrl) {
         updateUser({ profilePictureUrl: response.data.profilePictureUrl });
+        toast.success("تم تحديث الصورة الشخصية بنجاح!");
       }
     } catch (error) {
       console.error("Error uploading image:", error);
-      alert("حدث خطأ أثناء رفع الصورة");
+      const msg = error?.response?.data?.message || error?.message || "حدث خطأ أثناء رفع الصورة";
+      toast.error(msg);
     } finally {
       setUploadingImage(false);
     }
@@ -152,6 +233,17 @@ function ProfilePage() {
     }
   };
 
+  if (fetchingUser) {
+    return (
+      <div className="min-h-screen bg-cesar-darker font-cairo flex items-center justify-center text-white" dir={i18n.dir()}>
+        <div className="flex items-center gap-3 text-cesar-cyan">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="text-sm font-medium">جارٍ تحميل بيانات المستخدم الشخصية...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div dir={i18n.dir()} className="min-h-screen px-4 py-10 font-cairo">
       <motion.div
@@ -167,9 +259,9 @@ function ProfilePage() {
           <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-4 text-right w-full md:w-auto">
               <div
-                className="relative group cursor-pointer shrink-0"
-                onClick={handleImageClick}
-                title="تغيير الصورة الشخصية"
+                className={`relative group shrink-0 ${isOwnProfile ? "cursor-pointer" : ""}`}
+                onClick={isOwnProfile ? handleImageClick : undefined}
+                title={isOwnProfile ? "تغيير الصورة الشخصية" : undefined}
               >
                 {uploadingImage ? (
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan">
@@ -179,59 +271,65 @@ function ProfilePage() {
                   <div className="relative h-16 w-16">
                     <img
                       src={optimizeImage(profilePictureUrl)}
-                      alt={currentUser?.name}
+                      alt={profileUser?.name}
                       className="h-full w-full rounded-2xl object-cover border border-cesar-cyan/30 group-hover:border-cesar-cyan transition shadow-neon-cyan"
                     />
-                    <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                      <Camera className="h-6 w-6 text-white" />
-                    </div>
+                    {isOwnProfile && (
+                      <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <Camera className="h-6 w-6 text-white" />
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan group-hover:border-cesar-cyan transition">
+                  <div className={`flex h-16 w-16 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-neon-cyan ${isOwnProfile ? "group-hover:border-cesar-cyan" : ""} transition`}>
                     <Camera className="h-7 w-7" />
                   </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
+                {isOwnProfile && (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                )}
               </div>
 
               <div className="space-y-2 flex-1">
                 <div className="flex items-center justify-between w-full">
                   <p className="text-sm text-cesar-gray">الملف الشخصي</p>
-                  {!isEditing ? (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="text-cesar-cyan hover:text-white transition flex items-center gap-1 text-sm"
-                    >
-                      <Edit2 className="h-4 w-4" /> تعديل
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2">
+                  {isOwnProfile && (
+                    !isEditing ? (
                       <button
-                        onClick={handleUpdateProfile}
-                        disabled={isSaving}
-                        className="text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
+                        onClick={() => setIsEditing(true)}
+                        className="text-cesar-cyan hover:text-white transition flex items-center gap-1 text-sm"
                       >
-                        {isSaving ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}{" "}
-                        حفظ
+                        <Edit2 className="h-4 w-4" /> تعديل
                       </button>
-                      <button
-                        onClick={() => setIsEditing(false)}
-                        disabled={isSaving}
-                        className="text-red-400 hover:text-red-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
-                      >
-                        <X className="h-4 w-4" /> إلغاء
-                      </button>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleUpdateProfile}
+                          disabled={isSaving}
+                          className="text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
+                        >
+                          {isSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}{" "}
+                          حفظ
+                        </button>
+                        <button
+                          onClick={() => setIsEditing(false)}
+                          disabled={isSaving}
+                          className="text-red-400 hover:text-red-300 transition flex items-center gap-1 text-sm disabled:opacity-50"
+                        >
+                          <X className="h-4 w-4" /> إلغاء
+                        </button>
+                      </div>
+                    )
                   )}
                 </div>
 
@@ -245,14 +343,17 @@ function ProfilePage() {
                     className="w-full max-w-xs bg-black/40 border border-white/10 text-white rounded-lg px-3 py-1 focus:border-cesar-cyan focus:ring-1 focus:ring-cesar-cyan transition outline-none text-2xl font-bold"
                   />
                 ) : (
-                  <h1 className="text-3xl font-bold text-white">
-                    {currentUser?.name || "الزائر"}
-                  </h1>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-3xl font-bold text-white">
+                      {profileUser?.name || "الزائر"}
+                    </h1>
+                  </div>
                 )}
 
                 <p className="max-w-2xl text-sm leading-6 text-slate-300">
-                  تابع تفاصيل حسابك والمنشورات التي أرسلتها وحالتها الحالية من
-                  هنا.
+                  {isOwnProfile
+                    ? "تابع تفاصيل حسابك والمنشورات التي أرسلتها وحالتها الحالية من هنا."
+                    : "تصفح تفاصيل حساب البائع والمنشورات التي قام بنشرها من هنا."}
                 </p>
               </div>
             </div>
@@ -264,7 +365,9 @@ function ProfilePage() {
                   <span className="text-xs">البريد الإلكتروني</span>
                 </div>
                 <p className="truncate text-sm font-semibold text-white">
-                  {currentUser?.email || "غير متوفر"}
+                  {isOwnProfile || isAdmin
+                    ? profileUser?.email || "غير متوفر"
+                    : "••••••••@••••.•••"}
                 </p>
               </div>
               <div className="rounded-2xl border border-white/5 bg-black/30 px-4 py-3 text-right">
@@ -287,7 +390,9 @@ function ProfilePage() {
                     className="truncate text-sm font-semibold text-white"
                     dir="ltr"
                   >
-                    {currentUser?.phoneNumber || "غير متوفر"}
+                    {isOwnProfile || isAdmin
+                      ? profileUser?.phoneNumber || "غير متوفر"
+                      : "••••••••••"}
                   </p>
                 )}
               </div>
@@ -307,9 +412,13 @@ function ProfilePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3 text-right">
             <div>
-              <h2 className="text-2xl font-bold text-white">إعلاناتي</h2>
+              <h2 className="text-2xl font-bold text-white">
+                {isOwnProfile ? "إعلاناتي" : "إعلانات البائع"}
+              </h2>
               <p className="mt-1 text-sm text-cesar-gray">
-                عرض جميع الإعلانات التي قمت بإرسالها وحالتها في النظام.
+                {isOwnProfile
+                  ? "عرض جميع الإعلانات التي قمت بإرسالها وحالتها في النظام."
+                  : "عرض جميع الإعلانات التي قام البائع بنشرها وحالتها في النظام."}
               </p>
             </div>
           </div>
@@ -439,7 +548,7 @@ function ProfilePage() {
                         <div>
                           <p className="text-xs text-cesar-gray">السعر</p>
                           <p className="mt-1 text-lg font-bold text-cesar-cyan">
-                            {Number(post.price).toLocaleString()} ج.م
+                            {Number(post.price).toLocaleString()} {post.currency === "USD" ? "$" : post.currency === "SAR" ? "ر.س" : post.currency === "AED" ? "د.إ" : "ج.م"}
                           </p>
                         </div>
                       </div>
@@ -481,6 +590,67 @@ function ProfilePage() {
           )}
         </section>
       </motion.div>
+
+      {/* Delete Post Confirmation Modal */}
+      <AnimatePresence>
+        {postToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-cesar-dark p-6 shadow-2xl text-center font-cairo"
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+
+              <div className="flex flex-col items-center gap-4 mt-2 mb-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                  <AlertTriangle className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">تأكيد حذف الإعلان</h3>
+                  <p className="mt-2 text-xs leading-5 text-cesar-gray">
+                    هل أنت متأكد أنك تريد حذف هذا الإعلان نهائياً؟ لا يمكن التراجع عن هذا الإجراء.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmDeletePost}
+                  disabled={isDeletingPost}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20 transition text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeletingPost ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  {isDeletingPost ? "جارٍ الحذف..." : "نعم، احذف"}
+                </button>
+                <button
+                  onClick={() => setPostToDelete(null)}
+                  disabled={isDeletingPost}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 text-cesar-gray border border-white/5 hover:bg-white/10 hover:text-white transition text-sm font-bold disabled:opacity-50"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Action Button (FAB) for Messaging */}
+      {!isOwnProfile && (
+        <button
+          onClick={() => navigate(`/chat/${profileUser?._id}`)}
+          className="fixed z-40 right-4 bottom-20 md:right-6 md:bottom-6 flex items-center gap-2 px-5 py-2.5 rounded-full bg-cesar-darker/90 backdrop-blur-md border border-cesar-cyan/50 text-cesar-cyan font-bold font-cairo text-sm shadow-[0_0_15px_rgba(0,229,255,0.2)] transition-all duration-300 hover:bg-cesar-cyan/10 hover:scale-105 active:scale-95"
+        >
+          <MessageCircle className="h-4 w-4 animate-pulse" style={{ animationDuration: "2.5s" }} />
+          <span>تواصل معي</span>
+        </button>
+      )}
     </div>
   );
 }

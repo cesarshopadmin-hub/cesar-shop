@@ -5,21 +5,37 @@ import { v2 as cloudinary } from "cloudinary";
 
 const getPublicIdFromUrl = (url) => {
   try {
+    // 1. Remove the transformation segment if it exists (everything between /upload/ and the next slash or version)
     const parts = url.split("/upload/");
     if (parts.length < 2) return null;
-    const pathParts = parts[1].split("/");
-    if (pathParts[0].startsWith("v") && /^\d+$/.test(pathParts[0].substring(1))) {
-      pathParts.shift();
+    
+    let path = parts[1];
+    
+    // 2. Remove transformation string if it's the first segment (e.g., f_auto,q_auto,w_800/)
+    if (path.includes("/") && path.split("/")[0].includes(",")) {
+        path = path.substring(path.indexOf("/") + 1);
     }
-    const filename = pathParts.join("/");
-    return filename.split(".")[0];
-  } catch {
+    
+    // 3. Remove version prefix (e.g., v1783898624/)
+    if (path.startsWith("v")) {
+        const slashIndex = path.indexOf("/");
+        if (slashIndex !== -1) path = path.substring(slashIndex + 1);
+    }
+    
+    // 4. Remove extension
+    return path.substring(0, path.lastIndexOf('.'));
+  } catch (err) {
+    console.error("Error parsing Public ID:", err);
     return null;
   }
 };
 
 const createPost = asyncHandler(async (req, res) => {
+<<<<<<< HEAD
   const { whatsappNumber, countryCode, description, category, price, images } = req.body;
+=======
+  const { whatsappNumber, countryCode, description, category, price, currency, images } = req.body;
+>>>>>>> feature/v2-chat-community
   
   const imageUrls = Array.isArray(images) ? images : [];
 
@@ -30,6 +46,7 @@ const createPost = asyncHandler(async (req, res) => {
     description,
     category,
     price,
+    currency: currency || "EGP",
     images: imageUrls,
   });
 
@@ -132,7 +149,11 @@ const getPostById = asyncHandler(async (req, res) => {
 });
 
 const updatePost = asyncHandler(async (req, res) => {
+<<<<<<< HEAD
   const { whatsappNumber, countryCode, description, category, price, images } = req.body;
+=======
+  const { whatsappNumber, countryCode, description, category, price, currency, images } = req.body;
+>>>>>>> feature/v2-chat-community
   const post = await Post.findById(req.params.id);
 
   if (!post) {
@@ -153,10 +174,18 @@ const updatePost = asyncHandler(async (req, res) => {
     throw new Error("غير مصرح لك بتعديل هذا الإعلان إلا إذا كان معلقاً أو مرفوضاً");
   }
 
+<<<<<<< HEAD
   // description, price, category — updatable by both admin and owner
   post.description = description !== undefined ? description : post.description;
   post.price = price !== undefined ? price : post.price;
   post.category = category !== undefined ? category : post.category;
+=======
+  // description, price, category, currency — updatable by both admin and owner
+  post.description = description !== undefined ? description : post.description;
+  post.price = price !== undefined ? price : post.price;
+  post.category = category !== undefined ? category : post.category;
+  post.currency = currency !== undefined ? currency : post.currency;
+>>>>>>> feature/v2-chat-community
 
   if (isOwner) {
     post.whatsappNumber = whatsappNumber !== undefined ? whatsappNumber : post.whatsappNumber;
