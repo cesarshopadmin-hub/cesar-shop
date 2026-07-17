@@ -301,9 +301,15 @@ const CesarChannelPage = () => {
   const confirmDeleteComment = async () => {
     if (!commentToDelete) return;
     try {
-      await update(ref(db), {
-        [`cesar_channel/posts/${commentToDelete.postId}/comments/${commentToDelete.commentId}/isDeleted`]: true
-      });
+      if (commentToDelete.isAdminDelete) {
+        // Admin hard-delete: remove the node entirely — nothing shown to other users
+        await remove(ref(db, `cesar_channel/posts/${commentToDelete.postId}/comments/${commentToDelete.commentId}`));
+      } else {
+        // User soft-delete: keep the node but mark as deleted so "تم مسح هذا التعليق" shows
+        await update(ref(db), {
+          [`cesar_channel/posts/${commentToDelete.postId}/comments/${commentToDelete.commentId}/isDeleted`]: true
+        });
+      }
       toast.success(i18n.language === "ar" ? "تم حذف التعليق" : "Comment deleted");
     } catch (err) {
       console.error("Error deleting comment:", err);
@@ -955,6 +961,16 @@ const CesarChannelPage = () => {
                                 onClick={() => setCommentToDelete({ postId: targetPost.id, commentId })}
                                 className="text-cesar-gray hover:text-red-500 transition duration-200"
                                 title={i18n.language === "ar" ? "حذف التعليق" : "Delete Comment"}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {!comment.isDeleted && isAdmin && comment.senderId !== currentUser?._id && (
+                              <button
+                                type="button"
+                                onClick={() => setCommentToDelete({ postId: targetPost.id, commentId, isAdminDelete: true })}
+                                className="text-cesar-gray hover:text-red-500 transition duration-200"
+                                title={i18n.language === "ar" ? "حذف التعليق (إدارة)" : "Delete Comment (Admin)"}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
