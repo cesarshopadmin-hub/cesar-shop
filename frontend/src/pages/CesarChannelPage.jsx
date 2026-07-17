@@ -97,6 +97,7 @@ const CesarChannelPage = () => {
   const [channelImage, setChannelImage] = useState("");
   const [isUploadingChannelImage, setIsUploadingChannelImage] = useState(false);
   const channelImageInputRef = useRef(null);
+  const [adminProfileImage, setAdminProfileImage] = useState("");
 
   // Fetch channel metadata (like custom image)
   useEffect(() => {
@@ -106,6 +107,14 @@ const CesarChannelPage = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // Fetch admin profile image once so it shows on all posts regardless of who is viewing
+  useEffect(() => {
+    if (!adminId) return;
+    api.get(`/users/${adminId}`)
+      .then((res) => setAdminProfileImage(res.data?.profilePictureUrl || ""))
+      .catch(() => {});
+  }, [adminId]);
 
   const handleChannelImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -301,6 +310,9 @@ const CesarChannelPage = () => {
   const confirmDeleteComment = async () => {
     if (!commentToDelete) return;
     try {
+      const currentCount = posts.find(p => p.id === commentToDelete.postId)?.commentsCount || 0;
+      const newCount = Math.max(0, currentCount - 1);
+
       if (commentToDelete.isAdminDelete) {
         // Admin hard-delete: remove the node entirely — nothing shown to other users
         await remove(ref(db, `cesar_channel/posts/${commentToDelete.postId}/comments/${commentToDelete.commentId}`));
@@ -310,6 +322,9 @@ const CesarChannelPage = () => {
           [`cesar_channel/posts/${commentToDelete.postId}/comments/${commentToDelete.commentId}/isDeleted`]: true
         });
       }
+      await update(ref(db), {
+        [`cesar_channel/posts/${commentToDelete.postId}/commentsCount`]: newCount
+      });
       toast.success(i18n.language === "ar" ? "تم حذف التعليق" : "Comment deleted");
     } catch (err) {
       console.error("Error deleting comment:", err);
@@ -480,8 +495,16 @@ const CesarChannelPage = () => {
                 {/* Post Header */}
                 <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cesar-cyan/10 border border-cesar-cyan/20 text-cesar-cyan shadow-[0_0_8px_rgba(0,209,255,0.15)]">
-                      <UserCheck className="h-5 w-5" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cesar-cyan/10 border border-cesar-cyan/20 text-cesar-cyan shadow-[0_0_8px_rgba(0,209,255,0.15)] overflow-hidden shrink-0">
+                      {adminProfileImage ? (
+                        <img
+                          src={optimizeImage(adminProfileImage)}
+                          alt="Admin"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <UserCheck className="h-5 w-5" />
+                      )}
                     </div>
                     <div className="text-right">
                       <h4 className="text-sm font-extrabold text-white flex items-center gap-1.5">
