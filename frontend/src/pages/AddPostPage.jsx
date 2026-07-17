@@ -210,10 +210,7 @@ function AddPostPage() {
       const payload = {
         category: formData.category,
         price: Number(formData.price),
-<<<<<<< HEAD
-=======
         currency: formData.currency || "EGP",
->>>>>>> feature/v2-chat-community
         description: formData.description.trim(),
         whatsappNumber: formData.whatsappNumber.trim(),
         countryCode: formData.countryCode.trim(),

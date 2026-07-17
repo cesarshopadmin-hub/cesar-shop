@@ -386,11 +386,7 @@ const PostDetailsPage = () => {
                 <div className="space-y-4 font-cairo">
                   {/* Price */}
                   <div className="space-y-1">
-<<<<<<< HEAD
-                    <label className="text-xs font-bold text-cesar-gray">السعر (جنيه)</label>
-=======
                     <label className="text-xs font-bold text-cesar-gray">السعر ({post.currency === "USD" ? "دولار" : post.currency === "SAR" ? "ريال" : post.currency === "AED" ? "درهم" : "جنيه"})</label>
->>>>>>> feature/v2-chat-community
                     <input
                       type="number"
                       min="1"
