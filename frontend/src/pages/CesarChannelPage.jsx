@@ -957,17 +957,24 @@ const CesarChannelPage = () => {
                   ) : (
                     commentsEntries.map(([commentId, comment]) => (
                       <div key={commentId} className="flex items-start gap-3 justify-start text-right">
-                        {comment.senderImage ? (
-                          <img
-                            src={optimizeImage(comment.senderImage)}
-                            alt={comment.senderName}
-                            className="h-9 w-9 rounded-full object-cover border border-white/5"
-                          />
-                        ) : (
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 border border-white/5 text-cesar-gray">
-                            <User className="h-4 w-4" />
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/profile/${comment.senderId}`)}
+                          className="shrink-0 rounded-full focus:outline-none hover:ring-2 hover:ring-cesar-cyan/50 transition duration-200"
+                          title={comment.senderName}
+                        >
+                          {comment.senderImage ? (
+                            <img
+                              src={optimizeImage(comment.senderImage)}
+                              alt={comment.senderName}
+                              className="h-9 w-9 rounded-full object-cover border border-white/5"
+                            />
+                          ) : (
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 border border-white/5 text-cesar-gray">
+                              <User className="h-4 w-4" />
+                            </div>
+                          )}
+                        </button>
                         <div className="flex-1 min-w-0">
                           <div className="bg-white/5 border border-white/5 rounded-2xl rounded-tr-none px-4 py-2 text-start inline-block max-w-[90%] break-words">
                             <h5 className="text-xs font-bold text-cesar-cyan mb-1">
