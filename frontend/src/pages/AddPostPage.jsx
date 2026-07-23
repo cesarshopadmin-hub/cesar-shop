@@ -17,6 +17,8 @@ import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import PhoneInputDefault from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import imageCompression from "browser-image-compression";
+import heic2any from "heic2any";
 import { optimizeImage } from "../utils/imageOptimizer.js";
 
 const PhoneInput = PhoneInputDefault.default || PhoneInputDefault;
@@ -101,21 +103,86 @@ function AddPostPage() {
     }
   };
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const files = Array.from(event.target.files || []);
-    const totalFiles = [...selectedImages, ...files];
-    if (totalFiles.length > 5) {
-      toast.error("لا يمكنك رفع أكثر من 5 صور");
-      setSelectedImages(totalFiles.slice(0, 5));
-    } else {
-      setSelectedImages(totalFiles);
+    if (files.length === 0) return;
+
+    // Check remaining slots before processing anything
+    const remainingSlots = 5 - selectedImages.length;
+    if (remainingSlots <= 0) {
+      toast.error("الحد الأقصى هو 5 صور فقط");
+      return;
     }
-    if (fieldErrors.images) {
-      setFieldErrors((prev) => {
-        const next = { ...prev };
-        delete next.images;
-        return next;
-      });
+
+    const filesToProcess = files.slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      toast.error("الحد الأقصى هو 5 صور فقط");
+    }
+
+    const processedFiles = [];
+
+    for (const file of filesToProcess) {
+      // 1. Type check — must be an image
+      const isHEIC =
+        file.type === "image/heic" ||
+        file.type === "image/heif" ||
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif");
+
+      if (!file.type.startsWith("image/") && !isHEIC) {
+        toast.error("صيغة الملف غير مدعومة، يرجى اختيار صورة عادية");
+        continue;
+      }
+
+      try {
+        let fileToCompress = file;
+
+        // 2. HEIC conversion
+        if (isHEIC) {
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.85,
+          });
+          // heic2any may return an array of blobs for multi-page HEIC
+          const singleBlob = Array.isArray(convertedBlob)
+            ? convertedBlob[0]
+            : convertedBlob;
+          fileToCompress = new File(
+            [singleBlob],
+            file.name.replace(/\.heic$/i, ".jpg").replace(/\.heif$/i, ".jpg"),
+            { type: "image/jpeg" }
+          );
+        }
+
+        // 3. Compression
+        const compressed = await imageCompression(fileToCompress, {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        });
+
+        // Preserve filename on the compressed blob
+        const finalFile = new File([compressed], fileToCompress.name, {
+          type: compressed.type || "image/jpeg",
+        });
+
+        processedFiles.push(finalFile);
+      } catch (err) {
+        console.error("Image processing error:", err);
+        toast.error("حدث خطأ أثناء معالجة الصورة، يرجى المحاولة بصورة أخرى");
+      }
+    }
+
+    if (processedFiles.length > 0) {
+      setSelectedImages((prev) => [...prev, ...processedFiles]);
+      if (fieldErrors.images) {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.images;
+          return next;
+        });
+      }
     }
   };
 
