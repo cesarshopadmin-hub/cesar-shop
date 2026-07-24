@@ -277,7 +277,7 @@ const PostDetailsPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* ── Image gallery ── */}
           <div className="flex flex-col">
-            <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden border border-cesar-cyan/30 shadow-[0_0_15px_rgba(0,255,255,0.1)] relative group">
+            <div className="w-full rounded-2xl overflow-hidden border border-cesar-cyan/30 shadow-[0_0_15px_rgba(0,255,255,0.1)] relative group bg-black/60">
               <img
                 src={
                   post.images && post.images.length > 0
@@ -285,7 +285,7 @@ const PostDetailsPage = () => {
                     : "https://via.placeholder.com/600x400?text=No+Image"
                 }
                 alt={post.category || "إعلان"}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-zoom-in"
+                className="w-full h-auto max-h-[500px] object-contain transition-transform duration-700 group-hover:scale-105 cursor-zoom-in"
                 onClick={() => setIsLightboxOpen(true)}
               />
 
@@ -315,7 +315,7 @@ const PostDetailsPage = () => {
                   <div
                     key={idx}
                     onClick={() => setCurrentImageIndex(idx)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 cursor-pointer transition-all duration-300 ${
+                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 cursor-pointer transition-all duration-300 bg-black/60 ${
                       idx === currentImageIndex
                         ? "border-cesar-cyan opacity-100 shadow-[0_0_10px_rgba(0,240,255,0.4)]"
                         : "border-transparent opacity-60 hover:opacity-100"
@@ -324,7 +324,7 @@ const PostDetailsPage = () => {
                     <img
                       src={optimizeImage(img)}
                       alt={`${post.category || "إعلان"}-${idx}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                 ))}

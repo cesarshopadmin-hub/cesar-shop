@@ -302,12 +302,12 @@ function PostsPage() {
                     )}
                   </div>
 
-                  <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/40">
+                  <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-black/60">
                     {imageUrl ? (
                       <img
                         src={optimizeImage(imageUrl)}
                         alt={post.category || "إعلان"}
-                        className="h-full w-full object-cover transition duration-500 hover:scale-105"
+                        className="h-full w-full object-contain transition duration-500 hover:scale-105"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center bg-gradient-to-br from-cesar-cyan/10 via-transparent to-white/5 text-cesar-cyan">
