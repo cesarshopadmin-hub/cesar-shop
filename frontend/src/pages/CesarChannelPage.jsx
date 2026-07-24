@@ -569,9 +569,7 @@ const CesarChannelPage = () => {
                         key={idx}
                         src={optimizeImage(imgUrl)}
                         alt={`Channel media ${idx}`}
-                        className={`w-full object-cover rounded-xl cursor-pointer hover:opacity-90 transition duration-300 ${
-                          post.images.length === 1 ? "h-64 sm:h-80" : "aspect-square"
-                        }`}
+                        className="w-full h-auto max-h-[500px] object-contain rounded-xl cursor-pointer hover:opacity-90 transition duration-300 bg-black/20"
                         onClick={() => {
                           setViewerImages(post.images);
                           setViewerIndex(idx);
