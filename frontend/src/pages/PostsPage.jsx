@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle, Trash2, X, AlertTriangle } from "lucide-react";
+import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle, Trash2, X, AlertTriangle, Pin } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import { normalizeText, matchesCategory } from "../utils/postHelpers.js";
@@ -59,6 +59,23 @@ function PostsPage() {
     } finally {
       setIsDeletingPost(false);
       setPostToDelete(null);
+    }
+  };
+
+  const handleTogglePin = async (postId) => {
+    try {
+      const { data: updatedPost } = await api.put(`/posts/${postId}/pin`);
+      setPosts((prev) =>
+        prev
+          .map((p) => (p._id === postId ? { ...p, isPinned: updatedPost.isPinned } : p))
+          .sort((a, b) => {
+            if (b.isPinned !== a.isPinned) return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
+            return new Date(b.createdAt) - new Date(a.createdAt);
+          })
+      );
+      toast.success(updatedPost.isPinned ? "تم تثبيت الإعلان 📌" : "تم إلغاء تثبيت الإعلان");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "حدث خطأ أثناء تثبيت الإعلان.");
     }
   };
 
@@ -348,6 +365,26 @@ function PostsPage() {
                       </button>
                     )}
 
+                    {/* Admin Pin / Unpin button — stacked below the delete button */}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleTogglePin(post._id);
+                        }}
+                        className={`absolute top-12 border text-white rounded-full p-2.5 z-20 shadow-lg transition-all duration-300 hover:scale-110 ${
+                          post.isPinned
+                            ? "bg-amber-500/90 hover:bg-amber-500 border-amber-400/30 ring-2 ring-amber-400/60 hover:shadow-[0_0_15px_rgba(245,158,11,0.6)]"
+                            : "bg-amber-500/70 hover:bg-amber-500 border-amber-400/20 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+                        } ${i18n.dir() === "rtl" ? "right-2" : "left-2"}`}
+                        title={post.isPinned ? "إلغاء التثبيت" : "تثبيت الإعلان"}
+                      >
+                        <Pin className="h-4 w-4" />
+                      </button>
+                    )}
+
                     {/* Owner can also delete their own post from this page */}
                     {currentUser && currentUser.role !== 'admin' && post.user?._id === currentUser._id && (
                       <button
@@ -372,6 +409,13 @@ function PostsPage() {
                         <Tags className="h-4 w-4" />
                         {t(`enums.${post.category}`, { defaultValue: post.category || t("enums.غير محدد", { defaultValue: "غير محدد" }) })}
                       </span>
+
+                      {/* Pinned badge — visible to all users */}
+                      {post.isPinned && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[10px] font-bold text-amber-300 backdrop-blur-sm shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+                          📌 مثبت
+                        </span>
+                      )}
                     </div>
                   </div>
 

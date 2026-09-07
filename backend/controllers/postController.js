@@ -77,6 +77,11 @@ const getApprovedPosts = asyncHandler(async (req, res) => {
     ];
   }
 
+  // Normalize legacy posts that pre-date the isPinned field.
+  // MongoDB sorts: true > false > undefined — so an unpinned post (false) would incorrectly
+  // float above older posts (undefined). This is a no-op once all documents are normalized.
+  await Post.updateMany({ isPinned: { $exists: false } }, { $set: { isPinned: false } });
+
   const total = await Post.countDocuments(query);
 
   const posts = await Post.find(query)
