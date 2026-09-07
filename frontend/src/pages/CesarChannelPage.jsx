@@ -19,7 +19,8 @@ import {
   Ban,
   Trash2,
   AlertTriangle,
-  Edit
+  Edit,
+  Pin
 } from "lucide-react";
 import { ref, onValue, push, serverTimestamp, set, update, remove, query, limitToLast } from "firebase/database";
 import { toast } from "react-toastify";
@@ -80,8 +81,14 @@ const CesarChannelPage = () => {
           id: key,
           ...data[key],
         }));
-        // Sort by timestamp (newest first)
-        postList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        // Sort by isPinned (pinned first), then by timestamp (newest first).
+        // Use `|| false` to safely handle legacy Firebase posts that lack the isPinned field.
+        postList.sort((a, b) => {
+          const aPinned = a.isPinned || false;
+          const bPinned = b.isPinned || false;
+          if (bPinned !== aPinned) return (bPinned ? 1 : 0) - (aPinned ? 1 : 0);
+          return (b.timestamp || 0) - (a.timestamp || 0);
+        });
         setPosts(postList);
       } else {
         setPosts([]);
@@ -397,6 +404,21 @@ const CesarChannelPage = () => {
     }
   };
 
+  const handleTogglePin = async (postId, currentPinned) => {
+    try {
+      await update(ref(db, `cesar_channel/posts/${postId}`), {
+        isPinned: !currentPinned,
+      });
+      toast.success(!currentPinned
+        ? (i18n.language === "ar" ? "تم تثبيت المنشور 📌" : "Post pinned 📌")
+        : (i18n.language === "ar" ? "تم إلغاء تثبيت المنشور" : "Post unpinned")
+      );
+    } catch (err) {
+      console.error("Error toggling pin:", err);
+      toast.error(i18n.language === "ar" ? "تعذر تثبيت المنشور" : "Failed to pin post");
+    }
+  };
+
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
@@ -546,9 +568,35 @@ const CesarChannelPage = () => {
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
+
+                      {/* Pin / Unpin button */}
+                      <button
+                        onClick={() => handleTogglePin(post.id, post.isPinned || false)}
+                        className={`rounded-lg p-1.5 transition ${
+                          post.isPinned
+                            ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 ring-1 ring-amber-400/50"
+                            : "bg-white/5 text-cesar-gray hover:text-amber-400 hover:bg-amber-400/10"
+                        }`}
+                        title={
+                          post.isPinned
+                            ? (i18n.language === "ar" ? "إلغاء التثبيت" : "Unpin")
+                            : (i18n.language === "ar" ? "تثبيت" : "Pin")
+                        }
+                      >
+                        <Pin className="h-4 w-4" />
+                      </button>
                     </div>
                   )}
                 </div>
+
+                {/* Pinned badge — visible to all users when post.isPinned is true */}
+                {(post.isPinned || false) && (
+                  <div className="mb-3 -mt-1">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[10px] font-bold text-amber-300 backdrop-blur-sm shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+                      📌 {i18n.language === "ar" ? "مثبت" : "Pinned"}
+                    </span>
+                  </div>
+                )}
 
                 {/* Post Body (Text) */}
                 {post.text && (
