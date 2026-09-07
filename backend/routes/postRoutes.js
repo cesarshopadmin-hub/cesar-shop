@@ -10,6 +10,7 @@ import {
   getPostById,
   updatePost,
   deletePost,
+  togglePostPin,
 } from "../controllers/postController.js";
 import { protect, admin } from "../middlewares/authMiddleware.js";
 
@@ -119,6 +120,7 @@ router.put(
   updatePostStatus,
 );
 
+router.put("/:id/pin", protect, admin, togglePostPin);
 router.get("/:id", getPostById);
 router.put(
   "/:id",

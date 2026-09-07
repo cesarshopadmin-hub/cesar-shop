@@ -81,7 +81,7 @@ const getApprovedPosts = asyncHandler(async (req, res) => {
 
   const posts = await Post.find(query)
     .populate("user", "name profilePictureUrl")
-    .sort({ createdAt: -1 })
+    .sort({ isPinned: -1, createdAt: -1 })
     .skip(skip)
     .limit(limit);
 
@@ -239,6 +239,21 @@ const deletePost = asyncHandler(async (req, res) => {
   res.json({ message: "تم حذف الإعلان بنجاح" });
 });
 
+const togglePostPin = asyncHandler(async (req, res) => {
+  const post = await Post.findById(req.params.id);
+
+  if (!post) {
+    res.status(404);
+    throw new Error("Post not found");
+  }
+
+  post.isPinned = !post.isPinned;
+
+  const updatedPost = await post.save();
+
+  res.json(updatedPost);
+});
+
 export {
   createPost,
   getApprovedPosts,
@@ -248,4 +263,5 @@ export {
   getPostById,
   updatePost,
   deletePost,
+  togglePostPin,
 };

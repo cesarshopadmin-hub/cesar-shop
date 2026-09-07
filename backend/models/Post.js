@@ -64,6 +64,10 @@ const postSchema = new mongoose.Schema(
       required: [true, "Country code is required"],
       trim: true,
     },
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
