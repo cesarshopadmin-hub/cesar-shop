@@ -13,9 +13,12 @@ import {
   Share2,
   ArrowRight,
   GripVertical,
+  Image,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../../Services/api.js";
+import useApp from "../../context/useApp";
 import {
   DndContext,
   closestCenter,
@@ -62,9 +65,12 @@ function SortableItem({ id, children }) {
 
 function AdminSettingsPage() {
   const { t, i18n } = useTranslation();
+  const { setSettings } = useApp();
   const [alertMessage, setAlertMessage] = useState("");
   const [adminNumbers, setAdminNumbers] = useState([]);
   const [socialLinks, setSocialLinks] = useState([]);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -78,6 +84,7 @@ function AdminSettingsPage() {
         if (isMounted) {
           setAlertMessage(response.data?.alertMessage || "");
           setAdminNumbers(response.data?.adminContactNumbers || []);
+          setLogoUrl(response.data?.logoUrl || "");
           const linksWithIds = (response.data?.socialLinks || []).map((link, idx) => ({
             ...link,
             _id: link._id || `existing-${idx}-${Date.now()}`
@@ -132,6 +139,56 @@ function AdminSettingsPage() {
 
   const handleRemoveSocialLink = (id) => {
     setSocialLinks((prev) => prev.filter((link) => link._id !== id));
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    try {
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = (import.meta.env.VITE_CLOUDINARY_CHAT_PRESET || "chat_media").replace(/"/g, "");
+
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+      uploadData.append("upload_preset", uploadPreset);
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: uploadData }
+      );
+
+      if (!response.ok) throw new Error("Cloudinary upload failed");
+
+      const data = await response.json();
+      const uploadedUrl = (data.secure_url || "").replace("/upload/", "/upload/f_auto,q_auto,w_400/");
+
+      // Persist immediately so it takes effect globally
+      const { data: updated } = await api.put("/settings", { logoUrl: uploadedUrl });
+      setLogoUrl(uploadedUrl);
+      setSettings(updated || {});
+      toast.success("تم تحديث شعار الموقع بنجاح!");
+    } catch (err) {
+      console.error("Logo upload error:", err);
+      toast.error("تعذر رفع الشعار. حاول مرة أخرى.");
+    } finally {
+      setIsUploadingLogo(false);
+      // Reset file input
+      e.target.value = "";
+    }
+  };
+
+  const handleLogoReset = async () => {
+    try {
+      const { data: updated } = await api.put("/settings", { logoUrl: "" });
+      setLogoUrl("");
+      setSettings(updated || {});
+      toast.success("تم استعادة الشعار الافتراضي.");
+    } catch (err) {
+      console.error("Logo reset error:", err);
+      toast.error("تعذر إعادة تعيين الشعار.");
+    }
   };
 
   const handleDragEnd = async (event) => {
@@ -218,11 +275,14 @@ function AdminSettingsPage() {
         alertMessage: alertMessage.trim(),
         adminContactNumbers: cleanedNumbers,
         socialLinks: cleanedSocialLinks,
+        logoUrl: logoUrl.trim(),
       };
 
       const { data } = await api.put("/settings", payload);
       toast.success("تم حفظ الإعدادات العامة بنجاح.");
       setAdminNumbers(data.adminContactNumbers || []);
+      setLogoUrl(data.logoUrl || "");
+      setSettings(data || {});
       const linksWithIds = (data.socialLinks || []).map((link, idx) => ({
         ...link,
         _id: link._id || `existing-${idx}-${Date.now()}`
@@ -297,6 +357,80 @@ function AdminSettingsPage() {
         {/* Settings Form */}
         <form onSubmit={handleSave} className="space-y-8 pb-24">
           
+          {/* 0. Logo Upload Section */}
+          <section className="relative overflow-hidden rounded-2xl border border-white/5 bg-cesar-dark/80 p-6 shadow-xl backdrop-blur-md">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cesar-cyan/40 to-transparent" />
+            <div className="mb-5 flex items-center gap-3 border-b border-white/5 pb-4 text-right">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cesar-cyan/10 text-cesar-cyan">
+                <Image className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">شعار الموقع الديناميكي</h2>
+                <p className="text-xs text-cesar-gray">رفع شعار مخصص ليظهر في الشريط العلوي وتبويب المتصفح.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {/* Logo Preview */}
+              <div className="shrink-0 flex items-center justify-center h-24 w-24 rounded-2xl border border-white/10 bg-black/40 overflow-hidden shadow-inner">
+                {isUploadingLogo ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-cesar-cyan" />
+                ) : (
+                  <img
+                    src={logoUrl || "/logo.png"}
+                    alt="معاينة الشعار"
+                    className="h-full w-full object-contain p-1"
+                    onError={(e) => { e.currentTarget.src = "/logo.png"; }}
+                  />
+                )}
+              </div>
+
+              {/* Upload & Reset Controls */}
+              <div className="flex flex-col gap-3 w-full text-right">
+                <p className="text-xs text-cesar-gray leading-5">
+                  {logoUrl
+                    ? "يظهر الشعار المخصص حالياً على الموقع. يمكنك استبداله برفع صورة جديدة."
+                    : "لم يتم تعيين شعار مخصص. يظهر الشعار الافتراضي حالياً."}
+                </p>
+
+                <div className="flex flex-wrap gap-3">
+                  {/* Upload button */}
+                  <label className={`flex items-center gap-2 cursor-pointer rounded-xl border px-4 py-2.5 text-sm font-bold transition duration-200 ${
+                    isUploadingLogo
+                      ? "border-white/10 bg-white/5 text-slate-500 cursor-not-allowed"
+                      : "border-cesar-cyan/40 bg-cesar-cyan/10 text-cesar-cyan hover:bg-cesar-cyan/20 hover:shadow-neon-cyan"
+                  }`}>
+                    {isUploadingLogo ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> جاري الرفع...</>
+                    ) : (
+                      <><Image className="h-4 w-4" /> رفع شعار جديد</>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isUploadingLogo}
+                      onChange={handleLogoUpload}
+                    />
+                  </label>
+
+                  {/* Reset button — only shown when a dynamic logo is active */}
+                  {logoUrl && (
+                    <button
+                      type="button"
+                      onClick={handleLogoReset}
+                      disabled={isUploadingLogo}
+                      className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-sm font-bold text-rose-400 hover:bg-rose-500/20 transition duration-200 disabled:opacity-50"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      استعادة الافتراضي
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* 1. Alert Message Section */}
           <section className="relative overflow-hidden rounded-2xl border border-white/5 bg-cesar-dark/80 p-6 shadow-xl backdrop-blur-md">
             <div className="mb-5 flex items-center gap-3 border-b border-white/5 pb-4 text-right">

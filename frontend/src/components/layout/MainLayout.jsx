@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import CesarLogo from "../CesarLogo";
 import FloatingWarning from "../ui/FloatingWarning";
+import useApp from "../../context/useApp";
 // import ParticleBackground from "./ParticleBackground";
 
 function MainLayout() {
@@ -12,6 +13,7 @@ function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { token, logout, user } = useAuth(); 
+  const { settings } = useApp();
 
   const isActive = (path) => location.pathname === path;
   const isLoggedIn = !!token; 
@@ -39,7 +41,7 @@ function MainLayout() {
             
             <div className="flex items-center gap-2">
               <Link to="/" className="flex items-center gap-3 text-xl font-black tracking-wide text-cesar-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">
-                <CesarLogo className="w-16 h-16" />
+                <CesarLogo className="w-16 h-16" logoUrl={settings?.logoUrl || ""} />
                 <span>{t("nav.logo")}</span>
               </Link>
             </div>

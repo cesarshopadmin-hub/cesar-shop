@@ -29,6 +29,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { usePresence } from "../hooks/usePresence";
 import { optimizeImage } from "../utils/imageOptimizer.js";
 import api from "../Services/api.js";
+import useApp from "../context/useApp";
 
 const reactEmojis = { like: '👍', love: '❤️', fire: '🔥' };
 
@@ -40,6 +41,7 @@ const CesarChannelPage = () => {
   usePresence(currentUser?._id, "channel");
   const adminId = import.meta.env.VITE_ADMIN_ID;
   const isAdmin = currentUser?._id === adminId;
+  const { settings } = useApp();
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,19 +105,7 @@ const CesarChannelPage = () => {
     return () => unsubscribe();
   }, [i18n.language]);
 
-  const [channelImage, setChannelImage] = useState("");
-  const [isUploadingChannelImage, setIsUploadingChannelImage] = useState(false);
-  const channelImageInputRef = useRef(null);
   const [adminProfileImage, setAdminProfileImage] = useState("");
-
-  // Fetch channel metadata (like custom image)
-  useEffect(() => {
-    const channelImageRef = ref(db, "cesar_channel/channelImage");
-    const unsubscribe = onValue(channelImageRef, (snapshot) => {
-      setChannelImage(snapshot.val() || "");
-    });
-    return () => unsubscribe();
-  }, []);
 
   // Fetch admin profile image once so it shows on all posts regardless of who is viewing
   useEffect(() => {
@@ -124,45 +114,6 @@ const CesarChannelPage = () => {
       .then((res) => setAdminProfileImage(res.data?.profilePictureUrl || ""))
       .catch(() => {});
   }, [adminId]);
-
-  const handleChannelImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingChannelImage(true);
-    try {
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-      const uploadPreset = (import.meta.env.VITE_CLOUDINARY_CHAT_PRESET || "chat_media").replace(/"/g, "");
-
-      const uploadData = new FormData();
-      uploadData.append("file", file);
-      uploadData.append("upload_preset", uploadPreset);
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: "POST",
-          body: uploadData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to upload image to Cloudinary");
-      }
-
-      const data = await response.json();
-      const secureUrl = data.secure_url || "";
-      const formattedUrl = secureUrl.replace("/upload/", "/upload/f_auto,q_auto,w_800/");
-
-      await set(ref(db, "cesar_channel/channelImage"), formattedUrl);
-      toast.success(i18n.language === "ar" ? "تم تحديث صورة القناة بنجاح!" : "Channel image updated successfully!");
-    } catch (err) {
-      console.error("Error uploading channel image:", err);
-      toast.error(i18n.language === "ar" ? "تعذر رفع الصورة" : "Failed to upload image");
-    } finally {
-      setIsUploadingChannelImage(false);
-    }
-  };
 
   // Image caching/preview helper
   const objectUrlCache = useRef(new Map());
@@ -442,40 +393,19 @@ const CesarChannelPage = () => {
           
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div
-                onClick={() => isAdmin && !isUploadingChannelImage && channelImageInputRef.current?.click()}
-                className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-[0_0_15px_rgba(0,209,255,0.2)] overflow-hidden relative group ${
-                  isAdmin ? "cursor-pointer hover:border-cesar-cyan/50" : ""
-                }`}
-              >
-                {isUploadingChannelImage ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-cesar-cyan" />
-                ) : channelImage ? (
+              {/* Channel avatar — reads from global settings.logoUrl, falls back to Megaphone */}
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-cesar-cyan/20 bg-cesar-cyan/10 text-cesar-cyan shadow-[0_0_15px_rgba(0,209,255,0.2)] overflow-hidden">
+                {settings?.logoUrl ? (
                   <img
-                    src={optimizeImage(channelImage) || channelImage}
+                    src={optimizeImage(settings.logoUrl) || settings.logoUrl}
                     alt="Channel"
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-110"
+                    className="h-full w-full object-contain "
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
                   />
                 ) : (
                   <Megaphone className="h-8 w-8" />
                 )}
-
-                {isAdmin && !isUploadingChannelImage && (
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-200">
-                    <span className="text-[10px] text-white font-bold font-cairo">تعديل</span>
-                  </div>
-                )}
               </div>
-
-              {isAdmin && (
-                <input
-                  type="file"
-                  ref={channelImageInputRef}
-                  onChange={handleChannelImageUpload}
-                  className="hidden"
-                  accept="image/*"
-                />
-              )}
               <div className="text-right">
                 <h1 className="text-2xl md:text-3xl font-extrabold text-white flex items-center gap-2">
                   {i18n.language === "ar" ? "قناة سيزار" : "Cesar Channel"}

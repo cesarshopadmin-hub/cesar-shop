@@ -16,6 +16,8 @@ import useDocumentTitle from "../hooks/useDocumentTitle.js";
 // import ParticleBackground from "../components/layout/ParticleBackground.jsx";
 import CesarLogo from "../components/CesarLogo.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { optimizeImage } from "../utils/imageOptimizer.js";
+import useApp from "../context/useApp";
 import { toast } from "react-toastify";
 
 const platformIconMap = {
@@ -52,6 +54,7 @@ function HomePage() {
   useDocumentTitle(t("nav.logo") + " | " + t("nav.home"));
 
   const { user } = useAuth();
+  const { settings } = useApp();
   const isAdmin = user?.role === "admin";
 
   const [loading, setLoading] = useState(true);
@@ -290,7 +293,7 @@ function HomePage() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 my-4"
           >
-            <CesarLogo className="w-32 h-32 md:w-36 md:h-36 animate-pulse drop-shadow-[0_0_20px_rgba(0,209,255,0.8)]" />
+            <CesarLogo className="w-32 h-32 md:w-36 md:h-36 animate-pulse drop-shadow-[0_0_20px_rgba(0,209,255,0.8)]" logoUrl={settings?.logoUrl || ""} />
             <h1 className="text-5xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cesar-cyan to-white drop-shadow-[0_0_15px_rgba(0,209,255,0.5)] pb-4 leading-normal">
               {t("home.heroTitle")}
             </h1>
