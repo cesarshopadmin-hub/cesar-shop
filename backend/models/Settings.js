@@ -57,6 +57,11 @@ const settingsSchema = new mongoose.Schema(
       type: String,
       default: "https://www.youtube.com/embed/S6GQD0fg1fM",
     },
+    logoUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   {
     timestamps: true,

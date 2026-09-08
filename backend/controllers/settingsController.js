@@ -23,7 +23,7 @@ export const getSettings = asyncHandler(async (req, res) => {
 // @route   PUT /api/settings
 // @access  Protected/Admin
 export const updateSettings = asyncHandler(async (req, res) => {
-  const {  socialLinks, adminContactNumbers, alertMessage, videoLink } = req.body;
+  const { socialLinks, adminContactNumbers, alertMessage, videoLink, logoUrl } = req.body;
 
   // Build the update object from provided fields to avoid overwriting with undefined
   const updateData = {};
@@ -49,6 +49,7 @@ export const updateSettings = asyncHandler(async (req, res) => {
     }
     updateData.videoLink = resolvedLink;
   }
+  if (logoUrl !== undefined) updateData.logoUrl = logoUrl.trim();
 
   let settings = await Settings.findOneAndUpdate(
     {},
