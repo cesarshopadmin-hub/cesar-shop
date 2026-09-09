@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -20,7 +20,8 @@ import {
   Trash2,
   AlertTriangle,
   Edit,
-  Pin
+  Pin,
+  Share2
 } from "lucide-react";
 import { ref, onValue, push, serverTimestamp, set, update, remove, query, limitToLast } from "firebase/database";
 import { toast } from "react-toastify";
@@ -42,6 +43,8 @@ const CesarChannelPage = () => {
   const adminId = import.meta.env.VITE_ADMIN_ID;
   const isAdmin = currentUser?._id === adminId;
   const { settings } = useApp();
+  const location = useLocation();
+  const [highlightedPostId, setHighlightedPostId] = useState(null);
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -370,6 +373,44 @@ const CesarChannelPage = () => {
     }
   };
 
+  const handleShare = async (postId) => {
+    const url = `${window.location.origin}/channel?postId=${postId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: i18n.language === "ar" ? "قناة سيزار" : "Cesar Channel", url });
+      } catch {
+        // User cancelled native share — silent
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success(i18n.language === "ar" ? "تم نسخ الرابط بنجاح 🔗" : "Link copied! 🔗");
+      } catch {
+        toast.error(i18n.language === "ar" ? "تعذر نسخ الرابط" : "Failed to copy link");
+      }
+    }
+  };
+
+  // Deep link auto-scroll: reads ?postId= from URL, scrolls to and highlights the post
+  useEffect(() => {
+    if (!posts.length) return;
+    const params = new URLSearchParams(location.search);
+    const targetId = params.get("postId");
+    if (!targetId) return;
+    const el = document.getElementById(`post-${targetId}`);
+    if (!el) return;
+
+    // Small delay so the DOM is fully painted before scrolling
+    const scrollTimer = setTimeout(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedPostId(targetId);
+      const clearTimer = setTimeout(() => setHighlightedPostId(null), 3500);
+      return () => clearTimeout(clearTimer);
+    }, 300);
+
+    return () => clearTimeout(scrollTimer);
+  }, [posts.length, location.search]);
+
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
@@ -450,10 +491,15 @@ const CesarChannelPage = () => {
             {posts.map((post) => (
               <motion.article
                 key={post.id}
+                id={`post-${post.id}`}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className="overflow-hidden rounded-3xl border border-white/5 bg-cesar-dark/80 p-5 md:p-6 shadow-xl backdrop-blur-md relative"
+                className={`overflow-hidden rounded-3xl border bg-cesar-dark/80 p-5 md:p-6 shadow-xl backdrop-blur-md relative transition-shadow duration-500 ${
+                  highlightedPostId === post.id
+                    ? "border-cesar-cyan ring-2 ring-cesar-cyan shadow-[0_0_20px_rgba(0,209,255,0.4)]"
+                    : "border-white/5"
+                }`}
               >
                 {/* Post Header */}
                 <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
@@ -655,6 +701,17 @@ className="w-full h-auto max-h-[500px] object-contain rounded-xl cursor-pointer 
                         {post.commentsCount}
                       </span>
                     )}
+                  </button>
+
+                  {/* Share button — visible to all users */}
+                  <button
+                    type="button"
+                    onClick={() => handleShare(post.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 hover:text-white transition font-bold ms-auto"
+                    title={i18n.language === "ar" ? "مشاركة" : "Share"}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">{i18n.language === "ar" ? "مشاركة" : "Share"}</span>
                   </button>
                 </div>
               </motion.article>
