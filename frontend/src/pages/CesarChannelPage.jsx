@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
@@ -423,6 +423,10 @@ const CesarChannelPage = () => {
     });
   };
 
+  const pinnedPosts = useMemo(() => posts.filter((p) => p.isPinned), [posts]);
+  const [currentPinnedIndex, setCurrentPinnedIndex] = useState(0);
+  const activePinned = pinnedPosts[currentPinnedIndex] ?? pinnedPosts[0];
+
   return (
     <div dir={i18n.dir()} className="min-h-screen px-4 py-8 bg-cesar-darker font-cairo text-white">
       <div className="mx-auto max-w-2xl">
@@ -470,6 +474,82 @@ const CesarChannelPage = () => {
             )}
           </div>
         </div>
+
+        {/* ── Sticky Pinned Post Banner ── */}
+        {!loading && pinnedPosts.length > 0 && activePinned && (
+          <motion.div
+            key={activePinned.id}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            onClick={() => {
+              const el = document.getElementById(`post-${activePinned.id}`);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                setHighlightedPostId(activePinned.id);
+                setTimeout(() => setHighlightedPostId(null), 3500);
+              }
+            }}
+            className="sticky top-16 z-40 -mx-4 mb-4 cursor-pointer border-b border-amber-400/30 bg-cesar-darker/90 px-4 py-2.5 backdrop-blur-md transition-colors hover:bg-cesar-darker"
+          >
+            <div className="flex items-center gap-3">
+              {/* Pin icon + label */}
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Pin className="h-3.5 w-3.5 fill-amber-400/25 text-amber-400" />
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">
+                  {i18n.language === "ar" ? "منشور مثبت" : "Pinned"}
+                </span>
+              </div>
+
+              {/* Divider */}
+              <span className="h-4 w-px shrink-0 bg-white/15" />
+
+              {/* Truncated preview */}
+              <p className="flex-1 truncate text-sm text-slate-200">
+                {activePinned.text
+                  ? activePinned.text
+                  : i18n.language === "ar"
+                  ? "— صورة مرفقة —"
+                  : "— Image attached —"}
+              </p>
+
+              {/* Slider nav — only when multiple pins exist */}
+              {pinnedPosts.length > 1 ? (
+                <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentPinnedIndex((prev) => (prev - 1 + pinnedPosts.length) % pinnedPosts.length);
+                    }}
+                    className="flex h-5 w-5 items-center justify-center rounded-md bg-white/10 text-cesar-gray hover:bg-amber-400/20 hover:text-amber-400 transition"
+                    aria-label="Previous pinned"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="min-w-[2rem] text-center text-[10px] font-bold text-cesar-gray">
+                    {currentPinnedIndex + 1}/{pinnedPosts.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentPinnedIndex((prev) => (prev + 1) % pinnedPosts.length);
+                    }}
+                    className="flex h-5 w-5 items-center justify-center rounded-md bg-white/10 text-cesar-gray hover:bg-amber-400/20 hover:text-amber-400 transition"
+                    aria-label="Next pinned"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <span className="shrink-0 text-[10px] text-cesar-gray">
+                  {i18n.language === "ar" ? "←" : "→"}
+                </span>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Channel Feed */}
         {loading ? (

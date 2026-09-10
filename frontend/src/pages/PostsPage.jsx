@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle, Trash2, X, AlertTriangle, Pin } from "lucide-react";
+import { Loader2, Search, Tags, User, ArrowLeft, Sparkles, MessageCircle, Trash2, X, AlertTriangle, Pin, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "../Services/api.js";
 import { normalizeText, matchesCategory } from "../utils/postHelpers.js";
@@ -41,6 +41,8 @@ function PostsPage() {
   const [activeLightboxImage, setActiveLightboxImage] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [highlightedPostId, setHighlightedPostId] = useState(null);
+  const [currentPinnedIndex, setCurrentPinnedIndex] = useState(0);
 
   const deletePost = (postId) => {
     setPostToDelete(postId);
@@ -165,16 +167,103 @@ function PostsPage() {
     });
   }, [posts, searchQuery, selectedCategory]);
 
+  // Always derive from the raw posts array so the banner shows even when filters hide it
+  const pinnedPosts = useMemo(() => posts.filter((p) => p.isPinned), [posts]);
+  const activePinned = pinnedPosts[currentPinnedIndex] ?? pinnedPosts[0];
+
   return (
-    <section
+   <section
       dir={i18n.dir()}
-      className="relative isolate min-h-screen overflow-hidden bg-cesar-darker px-4 py-6 font-cairo text-white sm:px-6 lg:px-8"
+      className="relative isolate min-h-screen overflow-clip bg-cesar-darker px-4 py-6 font-cairo text-white sm:px-6 lg:px-8"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-black/70 via-black/45 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.18),transparent_60%)] opacity-70 blur-3xl" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/5 bg-black/35 backdrop-blur-sm" />
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
+
+        {/* ── Sticky Pinned Post Banner ── */}
+        {pinnedPosts.length > 0 && activePinned && (
+          <motion.div
+            key={activePinned._id}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            onClick={() => {
+              const el = document.getElementById(`post-${activePinned._id}`);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                setHighlightedPostId(activePinned._id);
+                setTimeout(() => setHighlightedPostId(null), 3500);
+              }
+            }}
+            className="sticky top-16 z-40 -mx-4 cursor-pointer border-b border-amber-400/30 bg-cesar-darker/90 px-4 py-2.5 backdrop-blur-md transition-colors hover:bg-cesar-darker sm:-mx-6 lg:-mx-8 sm:px-6 lg:px-8"
+          >
+            <div className="mx-auto flex max-w-7xl items-center gap-3">
+              {/* Pin icon + label */}
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Pin className="h-3.5 w-3.5 fill-amber-400/25 text-amber-400" />
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">
+                  {i18n.language === "ar" ? "منشور مثبت" : "Pinned"}
+                </span>
+              </div>
+
+              {/* Divider */}
+              <span className="h-4 w-px shrink-0 bg-white/15" />
+
+              {/* Truncated preview */}
+              <p className="flex-1 truncate text-sm text-slate-200">
+                {activePinned.description ||
+                  activePinned.title ||
+                  (i18n.language === "ar" ? "— عرض مثبت —" : "— Pinned listing —")}
+              </p>
+
+              {/* Price badge */}
+              {activePinned.price != null && (
+                <span className="shrink-0 rounded-full border border-cesar-cyan/30 bg-cesar-cyan/10 px-2.5 py-0.5 text-[10px] font-bold text-cesar-cyan">
+                  {Number(activePinned.price).toLocaleString()}{" "}
+                  {activePinned.currency === "USD" ? "$" : activePinned.currency === "SAR" ? "ر.س" : activePinned.currency === "AED" ? "د.إ" : "ج.م"}
+                </span>
+              )}
+
+              {/* Slider nav — only when multiple pins exist */}
+              {pinnedPosts.length > 1 ? (
+                <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentPinnedIndex((prev) => (prev - 1 + pinnedPosts.length) % pinnedPosts.length);
+                    }}
+                    className="flex h-5 w-5 items-center justify-center rounded-md bg-white/10 text-cesar-gray hover:bg-amber-400/20 hover:text-amber-400 transition"
+                    aria-label="Previous pinned"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="min-w-[2rem] text-center text-[10px] font-bold text-cesar-gray">
+                    {currentPinnedIndex + 1}/{pinnedPosts.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentPinnedIndex((prev) => (prev + 1) % pinnedPosts.length);
+                    }}
+                    className="flex h-5 w-5 items-center justify-center rounded-md bg-white/10 text-cesar-gray hover:bg-amber-400/20 hover:text-amber-400 transition"
+                    aria-label="Next pinned"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <span className="shrink-0 text-[10px] text-cesar-gray">
+                  {i18n.dir() === "rtl" ? "←" : "→"}
+                </span>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         <motion.header
           initial={{ opacity: 0, y: -22 }}
           animate={{ opacity: 1, y: 0 }}
@@ -276,13 +365,18 @@ function PostsPage() {
               return (
                 <motion.article
                   key={post._id}
+                  id={`post-${post._id}`}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
                     duration: 0.25,
                     delay: Math.min(index * 0.05, 0.25),
                   }}
-                  className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-white/5 bg-cesar-dark/80 shadow-2xl shadow-black/40 backdrop-blur-md"
+                  className={`flex h-full flex-col overflow-hidden rounded-[1.75rem] border bg-cesar-dark/80 shadow-2xl shadow-black/40 backdrop-blur-md transition-all duration-500 ${
+                    highlightedPostId === post._id
+                      ? "border-amber-400 ring-2 ring-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+                      : "border-white/5"
+                  }`}
                 >
                   {/* Card Header (Social Media Style) */}
                   <div className="flex items-center p-3 border-b border-white/5 bg-black/20">
@@ -374,7 +468,7 @@ function PostsPage() {
                           e.preventDefault();
                           handleTogglePin(post._id);
                         }}
-                        className={`absolute top-12 border text-white rounded-full p-2.5 z-20 shadow-lg transition-all duration-300 hover:scale-110 ${
+                        className={`absolute top-12 border text-white rounded-full p-2.5 mt-2 z-20 shadow-lg transition-all duration-300 hover:scale-110 ${
                           post.isPinned
                             ? "bg-amber-500/90 hover:bg-amber-500 border-amber-400/30 ring-2 ring-amber-400/60 hover:shadow-[0_0_15px_rgba(245,158,11,0.6)]"
                             : "bg-amber-500/70 hover:bg-amber-500 border-amber-400/20 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]"
